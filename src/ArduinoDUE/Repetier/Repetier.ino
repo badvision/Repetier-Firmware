@@ -82,6 +82,8 @@ Custom M Codes
 - M3 Sx - Spindle on, Clockwise or Laser on during G1 moves. Sx = laser intensity 0-255 if driver supports this (default ignores it)
 - M4 - Spindle on, Counterclockwise.
 - M5 - Spindle off, Laser off.
+- M17 - Enable all motors or only named motors
+- M18 - Disable all motors or named motors
 - M20  - List SD card
 - M21  - Initialize SD card
 - M22  - Release SD card
@@ -156,6 +158,7 @@ Custom M Codes
 - M401 - Store x, y and z position.
 - M402 - Go to stored position. If X, Y or Z is specified, only these coordinates are used. F changes feedrate for that move.
 - M408 S<0-5> - Return status as json string (requires matching feature) for PanelDue
+- M415 S<0/1> Z<zpos> - Enables (S1) or disables (S0) rescue system. Zx can define current Z as homed Z position.
 - M450 - Reports printer mode
 - M451 - Set printer mode to FFF
 - M452 - Set printer mode to laser
@@ -173,13 +176,14 @@ Custom M Codes
 - M602 S<1/0> P<1/0>- Debug jam control (S) Disable jam control (P). If enabled it will log signal changes and will not trigger jam errors!
 - M603 - Simulate a jam
 - M604 X<slowdownSteps> Y<errorSteps> Z<slowdownTo> T<extruderId> - Set jam detection values on a per extruder basis. If not set it uses defaults from Configuration.h
+- M606 X<distance> F<speed> - In DUAL_X_AXIS_MODE = 1 moves the current extruder to the specified distance relative to the carriage's home position. Default X is 0 (home position).
 - M666 - force communication error, required DEBUG_COM_ERRORS
 - M668 - set line number 0 without notice to simulate error
 - M670 S<version> - Set eeprom version to a value for testing eeprom upgrade path.
 - M908 P<address> S<value> : Set stepper current for digipot (RAMBO board)
 - M999 - Continue from fatal error. M999 S1 will create a fatal error for testing.
-- M914 X<sg_value> Y<sg_value> Z<sg_value> Stall detection sensitivity for Trinamic stepper drivers.
-- M915 X<0/1> Y<0/1> Z<0/1> Turn StealthChop mode ON or OFF on Trinamic stepper drivers.
+- M914 X<sg_value> Y<sg_value> Z<sg_value> E<sg_value> A<sg_value> B<sg_value> Stall detection sensitivity for Trinamic stepper drivers. E = Ext0, A = Ext1, B = Ext2
+- M915 X<0/1> Y<0/1> Z<0/1> E<0/1> A<0/1> B<0/1> Turn StealthChop mode ON or OFF on Trinamic stepper drivers. E = Ext0, A = Ext1, B = Ext2
 */
 
 #include "Repetier.h"

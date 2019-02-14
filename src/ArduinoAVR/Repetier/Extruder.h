@@ -61,7 +61,12 @@ public:
     millis_t decoupleTestPeriod; ///< Time between setting and testing decoupling.
     millis_t preheatStartTime;    ///< Time (in milliseconds) when heat up was started
     int16_t preheatTemperature;
-
+#if ENABLED(TEMP_GAIN)
+	float tempGain; ///< temperature gets multiplied with this value
+	float tempBias; ///< and this bias is added after gain was added
+#endif
+	/** Return currentTemperatureC but -333 on defect sensor and -444 on decoupled sensor. */
+	float getStatefulTemperature();
     void setTargetTemperature(float target);
     void updateCurrentTemperature();
     void updateTempControlVars();
@@ -318,9 +323,14 @@ public:
     void retract(bool isRetract,bool isLong);
     void retractDistance(float dist,bool extraLength = false);
 #endif
+#if DUAL_X_AXIS_MODE > 0 && LAZY_DUAL_X_AXIS == 0
+    inline bool isLeftCarriage() {return ((id == 0 && X_HOME_DIR == -1) || (id == 1 && X_HOME_DIR == 1)) ? true:false;}
+#endif
     static void manageTemperatures();
     static void disableCurrentExtruderMotor();
     static void disableAllExtruderMotors();
+    static void enableCurrentExtruderMotor();
+    static void enableAllExtruderMotors();
     static void selectExtruderById(uint8_t extruderId);
     static void disableAllHeater();
     static void initExtruder();

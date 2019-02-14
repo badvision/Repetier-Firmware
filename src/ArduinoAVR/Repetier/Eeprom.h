@@ -20,7 +20,7 @@
 #define _EEPROM_H
 
 // Id to distinguish version changes
-#define EEPROM_PROTOCOL_VERSION 19
+#define EEPROM_PROTOCOL_VERSION 20
 
 /** Where to start with our data block in memory. Can be moved if you
 have problems with other modules using the eeprom */
@@ -132,7 +132,16 @@ have problems with other modules using the eeprom */
 #define EPR_PARK_X						      1056
 #define EPR_PARK_Y                            1060
 #define EPR_PARK_Z                            1064
+#define EPR_HEATED_BED_GAIN                   1068
+#define EPR_HEATED_BED_BIAS                   1072
 
+#define EPR_RESCUE_START 4096-128
+#define EPR_RESCUE_MODE EPR_RESCUE_START
+#define EPR_RESCUE_TOOL (EPR_RESCUE_START +1 )
+#define EPR_RESCUE_LAST_RECEIVED (EPR_RESCUE_START + 2)
+#define EPR_RESCUE_LAST_POS (EPR_RESCUE_LAST_RECEIVED + 16)
+#define EPR_RESCUE_OFFSETS (EPR_RESCUE_LAST_POS + 16)
+#define EPR_RESCUE_SIZE (EPR_RESCUE_OFFSETS + 16)
 
 
 #if EEPROM_MODE != 0
@@ -168,6 +177,7 @@ have problems with other modules using the eeprom */
 #define EPR_EXTRUDER_Y_OFFSET           35
 #define EPR_EXTRUDER_WATCH_PERIOD       39
 #define EPR_EXTRUDER_ADVANCE_K          41
+#define EPR_EXTRUDER_BIAS          41
 #define EPR_EXTRUDER_DRIVE_MIN          45
 #define EPR_EXTRUDER_ADVANCE_L          46
 #define EPR_EXTRUDER_WAIT_RETRACT_TEMP 50
@@ -177,6 +187,7 @@ have problems with other modules using the eeprom */
 #define EPR_EXTRUDER_MIXING_RATIOS  58 // 16*2 byte ratios = 32 byte -> end = 89
 #define EPR_EXTRUDER_Z_OFFSET            90
 #define EPR_EXTRUDER_PREHEAT             94 // maybe better temperature
+#define EPR_EXTRUDER_GAIN                96
 #ifndef Z_PROBE_BED_DISTANCE
 #define Z_PROBE_BED_DISTANCE 5.0
 #endif

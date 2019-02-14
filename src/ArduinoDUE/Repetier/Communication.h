@@ -26,6 +26,8 @@
 #define MAX_DATA_SOURCES 4
 #endif
 
+extern const char* const axisNames[] PROGMEM;
+
 /** This class defines the general interface to handle gcode communication with the firmware. This
 allows it to connect to different data sources and handle them all inside the same data structure.
 If several readers are active, the first one sending a byte pauses all other inputs until the command
@@ -48,6 +50,7 @@ class GCodeSource {
     static void removeSource(GCodeSource *delSource);
     static void rotateSource(); ///< Move active to next source
     static void writeToAll(uint8_t byte); ///< Write to all listening sources
+    static void prefetchAll();
     static void printAllFLN(FSTRINGPARAM(text) );
     static void printAllFLN(FSTRINGPARAM(text), int32_t v);
     uint32_t lastLineNumber;
@@ -64,11 +67,14 @@ class GCodeSource {
     virtual int readByte() = 0;
     virtual void close() = 0;
     virtual void writeByte(uint8_t byte) = 0;
+    virtual void prefetchContent() {} // Used for emergency parsing to read ahaed
 };
 
 class Com
 {
     public:
+FSTRINGVAR(tM999)
+FSTRINGVAR(tEmpty)
 FSTRINGVAR(tDebug)
 FSTRINGVAR(tFirmware)
 FSTRINGVAR(tOk)

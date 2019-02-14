@@ -258,6 +258,8 @@ void correctAutolevel(Plane &plane) {
     // h1 is reference heights, h2 => motor 0, h3 => motor 1
     h2 -= h1;
     h3 -= h1;
+	Com::printFLN(PSTR("Correction Motor 2:"), h2, 3);
+	Com::printFLN(PSTR("Correction Motor 3:"), h3, 3);
 #if defined(LIMIT_MOTORIZED_CORRECTION)
     if(h2 < -LIMIT_MOTORIZED_CORRECTION) h2 = -LIMIT_MOTORIZED_CORRECTION;
     if(h2 > LIMIT_MOTORIZED_CORRECTION) h2 = LIMIT_MOTORIZED_CORRECTION;
@@ -333,7 +335,9 @@ bool runBedLeveling(int s) {
     Printer::moveTo(EEPROM::zProbeX1(), EEPROM::zProbeY1(), IGNORE_COORDINATE, IGNORE_COORDINATE, EEPROM::zProbeXYSpeed());
 #endif
     Printer::coordinateOffset[X_AXIS] = Printer::coordinateOffset[Y_AXIS] = Printer::coordinateOffset[Z_AXIS] = 0;
-    Printer::startProbing(true);
+    if(!Printer::startProbing(true)) {
+		return false;
+	}
     //GCode::executeFString(Com::tZProbeStartScript);
     Plane plane;
 #if BED_CORRECTION_METHOD == 1
@@ -344,7 +348,9 @@ bool runBedLeveling(int s) {
             Printer::finishProbing();
             Printer::homeAxis(true, true, true);
             Printer::moveTo(IGNORE_COORDINATE, IGNORE_COORDINATE, EEPROM::zProbeBedDistance() + (EEPROM::zProbeHeight() > 0 ? EEPROM::zProbeHeight() : 0), IGNORE_COORDINATE, Printer::homingFeedrate[Z_AXIS]);
-            Printer::startProbing(true);
+            if(!Printer::startProbing(true)) {
+				return false;
+			}
         }
 #endif // DELTA
 #endif // BED_CORRECTION_METHOD == 1
@@ -667,8 +673,10 @@ float Printer::runZProbe(bool first, bool last, uint8_t repeat, bool runStartScr
         //Com::printFLN(PSTR("ZHSteps:"),lastCorrection - currentPositionSteps[Z_AXIS]);
         if(r + 1 < repeat) {
             // go only shortest possible move up for repetitions
-            PrintLine::moveRelativeDistanceInSteps(0, 0, shortMove, 0, HOMING_FEEDRATE_Z, true, true);
-            if(Endstops::zProbe()) {
+            PrintLine::moveRelativeDistanceInSteps(0, 0, shortMove, 0, HOMING_FEEDRATE_Z, true, false);
+			Endstops::update();
+			Endstops::update(); // need to call twice for full update!
+	        if(Endstops::zProbe()) {
                 Com::printErrorFLN(PSTR("z-probe did not untrigger on repetitive measurement - maybe you need to increase distance!"));
                 UI_MESSAGE(1);
                 return ILLEGAL_Z_PROBE;
@@ -683,9 +691,11 @@ float Printer::runZProbe(bool first, bool last, uint8_t repeat, bool runStartScr
 #endif
 
     // Go back to start position
-    PrintLine::moveRelativeDistanceInSteps(0, 0, lastCorrection - currentPositionSteps[Z_AXIS], 0, HOMING_FEEDRATE_Z, true, true);
+    PrintLine::moveRelativeDistanceInSteps(0, 0, lastCorrection - currentPositionSteps[Z_AXIS], 0, HOMING_FEEDRATE_Z, true, false);
+    Endstops::update();
+    Endstops::update(); // need to call twice for full update!
     if(Endstops::zProbe()) { // did we untrigger? If not don't trust result!
-        Com::printErrorFLN(PSTR("z-probe did not untrigger on repetitive measurement - maybe you need to increase distance!"));
+        Com::printErrorFLN(PSTR("z-probe did not untrigger - maybe you need to increase distance!"));
         UI_MESSAGE(1);
         return ILLEGAL_Z_PROBE;
     }

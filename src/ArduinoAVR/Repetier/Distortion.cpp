@@ -108,6 +108,8 @@ void Distortion::enable(bool permanent) {
         EEPROM::setZCorrectionEnabled(enabled);
 #endif
     Com::printFLN(Com::tZCorrectionEnabled);
+	// Problem is now we do not include the extra steps required
+	Printer::updateCurrentPosition(false);
 }
 
 void Distortion::disable(bool permanent) {
@@ -119,7 +121,7 @@ void Distortion::disable(bool permanent) {
 #if DRIVE_SYSTEM != DELTA
     Printer::zCorrectionStepsIncluded = 0;
 #endif
-    Printer::updateCurrentPosition(false);
+    Printer::updateCurrentPosition(false); // now we have a different z height ignoring extra steps included
     Com::printFLN(Com::tZCorrectionDisabled);
 }
 
@@ -208,7 +210,9 @@ bool Distortion::measure(void) {
     zCorrection -= Printer::zBedOffset * Printer::axisStepsPerMM[Z_AXIS];
 #endif
 
-    Printer::startProbing(true);
+    if(!Printer::startProbing(true)) {
+		return false;
+	}
     Printer::moveToReal(IGNORE_COORDINATE, IGNORE_COORDINATE, z, IGNORE_COORDINATE, Printer::homingFeedrate[Z_AXIS]);
     for (iy = DISTORTION_CORRECTION_POINTS - 1; iy >= 0; iy--)
         for (ix = 0; ix < DISTORTION_CORRECTION_POINTS; ix++) {

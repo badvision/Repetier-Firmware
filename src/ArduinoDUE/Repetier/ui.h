@@ -270,6 +270,7 @@
 #define UI_ACTION_LANGUAGE_PL           1709
 #define UI_ACTION_LANGUAGE_TR           1710
 #define UI_ACTION_LANGUAGE_FI           1711
+#define UI_ACTION_LANGUAGE_RU           1712
 
 #define UI_ACTION_MENU_XPOS             4000
 #define UI_ACTION_MENU_YPOS             4001
@@ -555,6 +556,32 @@ const UIMenu name PROGMEM = {5,action,5,name ## _entries};
 #define SDSUPPORT 1
 #endif
 
+// RADDS + RADDS2LCD + Full Graphics Smart Controller / RRD Smartcontroller 4x20
+#if MOTHERBOARD == 402 && (FEATURE_CONTROLLER == CONTROLLER_SMARTRAMPS || FEATURE_CONTROLLER == CONTROLLER_REPRAPDISCOUNT_GLCD)
+#undef SDCARDDETECT
+#define SDCARDDETECT 14
+#undef SDSUPPORT
+#define SDSUPPORT 1
+#endif // FEATURE_CONTROLLER == CONTROLLER_RADDS_FGSC
+
+#if (MOTHERBOARD == 408 || MOTHERBOARD == 413) && (FEATURE_CONTROLLER == CONTROLLER_SMARTRAMPS || FEATURE_CONTROLLER == CONTROLLER_REPRAPDISCOUNT_GLCD)
+// Smart RAMPS has no hardware SPI so we need to use software spi instead
+#define ENABLE_SOFTWARE_SPI_CLASS 1
+
+#define SD_SOFT_MISO_PIN 17
+#define SD_SOFT_MOSI_PIN 51
+#define SD_SOFT_SCK_PIN 16
+#undef SDSS
+#define SDSS                      49
+#undef SDCARDDETECT
+#define SDCARDDETECT              52
+#undef SDCARDDETECTINVERTED
+#define SDCARDDETECTINVERTED      0
+#undef SDSUPPORT
+#define SDSUPPORT                 1
+#endif
+
+
 #if FEATURE_CONTROLLER == CONTROLLER_VIKI2
 #undef SDCARDDETECT
 #define SDCARDDETECT -1
@@ -571,6 +598,20 @@ const UIMenu name PROGMEM = {5,action,5,name ## _entries};
 #define SDSUPPORT 1
 #endif
 
+#if FEATURE_CONTROLLER == CONTROLLER_AZSMZ_12864 || FEATURE_CONTROLLER == CONTROLLER_AZSMZ_12864_OLED
+#undef SDSUPPORT
+#define SDSUPPORT 1
+#undef SDCARDDETECTINVERTED
+#define SDCARDDETECTINVERTED 0
+#if MOTHERBOARD == 408 || MOTHERBOARD == 413
+// Smart RAMPS has no hardware SPI so we need to use software spi instead
+#define ENABLE_SOFTWARE_SPI_CLASS 1
+
+#define SD_SOFT_MISO_PIN 50
+#define SD_SOFT_MOSI_PIN 51
+#define SD_SOFT_SCK_PIN 52
+#endif
+#endif
 
 // Maximum size of a row - if row is larger, text gets scrolled
 #if defined(UI_DISPLAY_TYPE) && UI_DISPLAY_TYPE == DISPLAY_GAMEDUINO2
