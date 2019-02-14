@@ -63,9 +63,11 @@ void Commands::checkForPeriodicalActions(bool allowNewMoves) {
     EVENT_PERIODICAL;
 #if defined(DOOR_PIN) && DOOR_PIN > -1
     if(Printer::updateDoorOpen()) {
+#if defined(SUPPORT_LASER) && SUPPORT_LASER
         if(Printer::mode == PRINTER_MODE_LASER) {
             LaserDriver::changeIntensity(0);
         }
+#endif
     }
 #endif
     if(!executePeriodical) return; // gets true every 100ms
@@ -530,7 +532,11 @@ TMC2130Stepper* tmcDriverByIndex(uint8_t index) {
 void setMotorCurrent( uint8_t driver, uint16_t level ) {
     TMC2130Stepper* tmc_driver = tmcDriverByIndex(driver);
     if(tmc_driver) {
+#if MOTHERBOARD == 310
+		tmc_driver->rms_current(level, 0.5, 0.22);
+#else
         tmc_driver->rms_current(level);
+#endif
     }
 }
 
@@ -1552,7 +1558,8 @@ void Commands::processGCode(GCode *com) {
                     if(off < mins[i]) mins[i] = off;
                     if(off > maxs[i]) maxs[i] = off;
                     if(maxs[i] - mins[i] > G134_PRECISION) {
-                        Com::printErrorFLN(PSTR("Deviation between measurements were too big, please repeat."));
+                        Com::printWarningFLN(PSTR("Deviation between measurements were too big, please repeat."));
+						Com::printFLN(PSTR("Z Offset not computed due to errors"));
                         bigError = true;
                         break;
                     }
@@ -1567,7 +1574,10 @@ void Commands::processGCode(GCode *com) {
 #if EEPROM_MODE != 0
             EEPROM::storeDataIntoEEPROM(0);
 #endif
-        }
+			Com::printFLN(PSTR("Z Offset stored"));
+        } else {
+			Com::printFLN(PSTR("Z Offset not computed due to errors"));
+		}
         Extruder::selectExtruderById(startExtruder);
         Printer::finishProbing();
 #if defined(Z_PROBE_MIN_TEMPERATURE) && Z_PROBE_MIN_TEMPERATURE
@@ -2148,6 +2158,18 @@ void Commands::processMCode(GCode *com) {
         break;
 #endif
     case 203: // M203 Temperature monitor
+		if(com->hasX()) {
+			Printer::maxFeedrate[X_AXIS] = com->X / 60.0f;
+		}
+		if(com->hasY()) {
+			Printer::maxFeedrate[Y_AXIS] = com->Y / 60.0f;
+		}
+		if(com->hasZ()) {
+			Printer::maxFeedrate[Z_AXIS] = com->Z / 60.0f;
+		}
+		if(com->hasE()) {
+			Printer::maxFeedrate[E_AXIS] = com->E / 60.0f;
+		}
         if(com->hasS())
             manageMonitor = com->S != 255;
         else
@@ -2198,6 +2220,28 @@ void Commands::processMCode(GCode *com) {
         if(com->hasS())
             Printer::setAutoretract(com->S != 0);
         break;
+	case 218:
+		{
+		 int extId = 0;
+		 if(com->hasT()) extId = com->T;
+		 if(extId >= 0 && extId < NUM_EXTRUDER) {
+			if(com->hasX()) {
+				extruder[extId].xOffset = com->X * Printer::axisStepsPerMM[X_AXIS];
+			}
+			if(com->hasY()) {
+				 extruder[extId].yOffset = com->Y * Printer::axisStepsPerMM[Y_AXIS];
+			}
+			if(com->hasZ()) {
+				extruder[extId].zOffset = com->Z * Printer::axisStepsPerMM[Z_AXIS];
+			}
+#if EEPROM_MODE > 0
+			if(com->hasS() && com->S > 0) {
+				EEPROM::storeDataIntoEEPROM(false);
+			}
+#endif
+		  }
+		}
+		break;
     case 220: // M220 S<Feedrate multiplier in percent>
         changeFeedrateMultiply(com->getS(100));
         break;
