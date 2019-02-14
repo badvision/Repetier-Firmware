@@ -37,8 +37,12 @@ uint8_t Com::selectedLanguage;
 #ifndef FIRMWARE_URL
 #define FIRMWARE_URL "https://github.com/repetier/Repetier-Firmware/"
 #endif // FIRMWARE_URL
-
+const char* const axisNames[] PROGMEM = {
+	"X", "Y", "Z", "E", "A", "B", "C"
+};
 FSTRINGVALUE(Com::tFirmware, "FIRMWARE_NAME:Repetier_" REPETIER_VERSION " COMPILED:" __DATE__ " FIRMWARE_URL:" FIRMWARE_URL " PROTOCOL_VERSION:1.0 MACHINE_TYPE:" MACHINE_TYPE " EXTRUDER_COUNT:" XSTR(NUM_EXTRUDER) " REPETIER_PROTOCOL:3")
+FSTRINGVALUE(Com::tM999, "Fail mode active. Send M999 to disable failed mode!")
+FSTRINGVALUE(Com::tEmpty, "")
 FSTRINGVALUE(Com::tDebug, "Debug:")
 FSTRINGVALUE(Com::tOk, "ok")
 FSTRINGVALUE(Com::tNewline, "\r\n")
@@ -406,13 +410,13 @@ FSTRINGVALUE(Com::tEPRXOffset, "X-offset [steps]")
 FSTRINGVALUE(Com::tEPRYOffset, "Y-offset [steps]")
 FSTRINGVALUE(Com::tEPRZOffset, "Z-offset [steps]")
 FSTRINGVALUE(Com::tEPRStabilizeTime, "temp. stabilize time [s]")
-FSTRINGVALUE(Com::tEPRRetractionWhenHeating, "temp. for retraction when heating [C]")
+FSTRINGVALUE(Com::tEPRRetractionWhenHeating, "temp. for retraction when heating [degC]")
 FSTRINGVALUE(Com::tEPRDistanceRetractHeating, "distance to retract when heating [mm]")
 FSTRINGVALUE(Com::tEPRExtruderCoolerSpeed, "extruder cooler speed [0-255]")
 FSTRINGVALUE(Com::tEPRAdvanceK, "advance K [0=off]")
 FSTRINGVALUE(Com::tEPRAdvanceL, "advance L [0=off]")
-FSTRINGVALUE(Com::tEPRPreheatTemp, "Preheat temp. [°C]")
-FSTRINGVALUE(Com::tEPRPreheatBedTemp, "Bed Preheat temp. [°C]")
+FSTRINGVALUE(Com::tEPRPreheatTemp, "Preheat temp. [degC]")
+FSTRINGVALUE(Com::tEPRPreheatBedTemp, "Bed Preheat temp. [degC]")
 
 #endif
 #if SDSUPPORT

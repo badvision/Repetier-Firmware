@@ -24,11 +24,24 @@
 
 #include <math.h>
 #include <stdint.h>
-//#define REPETIER_VERSION "0.92.10"
-#define REPETIER_VERSION "1.0.1"
+
+#define REPETIER_VERSION "1.0.4"
 
 // Use new communication model for multiple channels - only until stable, then old version gets deleted
 #define NEW_COMMUNICATION 1
+
+
+// Some helper macros
+
+#define _CAT(a, ...) a##__VA_ARGS__
+#define SWITCH_ENABLED_false 0
+#define SWITCH_ENABLED_true 1
+#define SWITCH_ENABLED_0 0
+#define SWITCH_ENABLED_1 1
+#define SWITCH_ENABLED_ 1
+#define ENABLED(b) _CAT(SWITCH_ENABLED_, b)
+#define DISABLED(b) (!_CAT(SWITCH_ENABLED_, b))
+
 // ##########################################################################################
 // ##                                  Debug configuration                                 ##
 // ##########################################################################################
@@ -178,6 +191,7 @@ usage or for searching for memory induced errors. Switch it off for production, 
 #define CONTROLLER_ORCABOTXXLPRO2 25
 #define CONTROLLER_AZSMZ_12864 26
 #define CONTROLLER_REPRAPWORLD_GLCD 27
+#define CONTROLLER_AZSMZ_12864_OLED 28
 
 //direction flags
 #define X_DIRPOS 1
@@ -210,6 +224,36 @@ usage or for searching for memory induced errors. Switch it off for production, 
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 #include "Configuration.h"
+
+#if USE_ADVANCE && ENABLE_QUADRATIC_ADVANCE && ENABLED(TEMP_GAIN)
+#error You can not enable TEMP_GAIN and ENABLE_QUADRATIC_ADVANCE the same time. Please disable one feature.
+#endif
+
+#ifndef HOST_RESCUE
+#define HOST_RESCUE 1
+#endif
+#if EEPROM_MODE == 0 && HOST_RESCUE
+#warning HOST_RESCUE requires eeprom support! Disabling feature.
+#undef HOST_RESCUE
+#define HOST_RESCUE 0
+#endif
+
+#ifndef EMERGENCY_PARSER
+#if DRIVE_SYSTEM != 3 || CPU_ARCH != ARCH_AVR
+#define EMERGENCY_PARSER 1
+#else
+#define EMERGENCY_PARSER 0
+#endif
+#endif
+
+#ifndef DUAL_X_AXIS_MODE
+#define DUAL_X_AXIS_MODE 0
+#endif
+
+#if DUAL_X_AXIS_MODE > 0
+#undef LAZY_DUAL_X_AXIS
+#define LAZY_DUAL_X_AXIS 0
+#endif
 
 #if (LASER_PWM_MAX > 255 && SUPPORT_LASER) || (CNC_PWM_MAX > 255 && SUPPORT_CNC)
 typedef uint16_t secondspeed_t;
@@ -595,7 +639,13 @@ inline void memcopy4(void *dest,void *source) {
 #endif
 
 #include "HAL.h"
+#ifndef MAX_VFAT_ENTRIES
+#ifdef AVR_BOARD
 #define MAX_VFAT_ENTRIES (2)
+#else
+#define MAX_VFAT_ENTRIES (3)
+#endif
+#endif
 /** Total size of the buffer used to store the long filenames */
 #define LONG_FILENAME_LENGTH (13*MAX_VFAT_ENTRIES+1)
 #define SD_MAX_FOLDER_DEPTH 2
@@ -620,7 +670,7 @@ inline void memcopy4(void *dest,void *source) {
 #endif
 
 #if SDSUPPORT
-#include "SdFat.h"
+#include "src/SdFat/SdFat.h"
 #endif
 
 #include "gcode.h"
@@ -956,7 +1006,7 @@ extern void microstepInit();
 #include "motion.h"
 extern long baudrate;
 
-#include "HAL.h"
+// #include "HAL.h"
 
 
 extern unsigned int counterPeriodical;
@@ -970,17 +1020,21 @@ extern uint8_t fanKickstart;
 extern uint8_t fan2Kickstart;
 #endif
 
-#if SDSUPPORT
 extern char tempLongFilename[LONG_FILENAME_LENGTH+1];
 extern char fullName[LONG_FILENAME_LENGTH*SD_MAX_FOLDER_DEPTH+SD_MAX_FOLDER_DEPTH+1];
+#if SDSUPPORT
 #define SHORT_FILENAME_LENGTH 14
-#include "SdFat.h"
+#include "src/SdFat/SdFat.h"
 
 enum LsAction {LS_SerialPrint,LS_Count,LS_GetFilename};
 class SDCard
 {
 public:
-    SdFat fat;
+#if defined(ENABLE_SOFTWARE_SPI_CLASS) && ENABLE_SOFTWARE_SPI_CLASS
+	SdFatSoftSpi<SD_SOFT_MISO_PIN, SD_SOFT_MOSI_PIN, SD_SOFT_SCK_PIN> fat;
+#else
+	SdFat fat;
+#endif
     //Sd2Card card; // ~14 Byte
     //SdVolume volume;
     //SdFile root;

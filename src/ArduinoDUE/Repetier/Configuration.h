@@ -63,7 +63,9 @@ To override EEPROM settings with config settings, set EEPROM_MODE 0
 // DUE3DOM                      = 410
 // DUE3DOM MINI                 = 411
 // STACKER 3D Superboard        = 412
-// RURAMPS4D                    = 414
+// RURAMPS4D 1.0-1.1            = 414
+// RURAMPS4D 1.3                = 415
+// Shasta                       = 416
 // Alligator Board rev1         = 500
 // Alligator Board rev2         = 501
 // Alligator Board rev3         = 502
@@ -71,6 +73,9 @@ To override EEPROM settings with config settings, set EEPROM_MODE 0
 #define MOTHERBOARD 402
 
 #include "pins.h"
+
+/** Enable rescue system that helps hosts to reconnect and continue a print after a disconnect. */
+#define HOST_RESCUE 1
 
 // Override pin definitions from pins.h
 //#define FAN_PIN   4  // Extruder 2 uses the default fan output, so move to an other pin
@@ -107,7 +112,7 @@ is a full cartesian system where x, y and z moves are handled by separate motors
 Cases 1, 2, 8 and 9 cover all needed xy and xz H gantry systems. If you get results mirrored etc. you can swap motor connections for x and y.
 If a motor turns in the wrong direction change INVERT_X_DIR or INVERT_Y_DIR.
 */
-#define DRIVE_SYSTEM 3
+#define DRIVE_SYSTEM 1
 /*
   Normal core xy implementation needs 2 virtual steps for a motor step to guarantee
   that every tiny move gets maximum one step regardless of direction. This can cost
@@ -251,6 +256,7 @@ controlled by settings in extruder 0 definition. */
 // 100 is AD595
 // 101 is MAX6675
 // 102 is MAX31855
+// 103 is MAX31855 with software SPI, sensor pin is data input!
 #define EXT0_TEMPSENSOR_TYPE 1
 // Analog input pin for reading temperatures or pin enabling SS for MAX6675
 #define EXT0_TEMPSENSOR_PIN TEMP_0_PIN
@@ -676,6 +682,13 @@ Value is used for all generic tables created. */
 //#define SUPPORT_MAX6675
 // uncomment the following line for MAX31855 support.
 //#define SUPPORT_MAX31855
+// If you use software spi for max31855 all chips need to use same CS/CLK pin. Sensor pin is MISO pin!
+//#define SUPPORT_MAX31855_SW
+#define MAX31855_SW_CS  47
+#define MAX31855_SW_CLK 32
+
+/** WIth value 1 you can adjust measured temperature into temp = measured * gain + bias. */
+#define TEMP_GAIN 0
 
 // ############# Heated bed configuration ########################
 
@@ -927,6 +940,7 @@ on this endstop.
 #define ENDSTOP_X_BACK_MOVE 5
 #define ENDSTOP_Y_BACK_MOVE 5
 #define ENDSTOP_Z_BACK_MOVE 5
+
 // If you do z min homing, you might want to rise extruder a bit after homing so it does not heat
 // touching your bed.
 #define Z_UP_AFTER_HOME 0
@@ -961,6 +975,16 @@ on this endstop.
 #define X_MIN_POS 0
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
+
+// Park position used when pausing from firmware side
+#if DRIVE_SYSTEM == DELTA
+#define PARK_POSITION_X (0)
+#define PARK_POSITION_Y (70)
+#else 
+#define PARK_POSITION_X (X_MIN_POS)
+#define PARK_POSITION_Y (Y_MIN_POS + Y_MAX_LENGTH)
+#endif
+#define PARK_POSITION_Z_RAISE 10
 
 // ##########################################################################################
 // ##                           Movement settings                                          ##
@@ -1387,10 +1411,30 @@ instead of driving both with a single stepper. The same works for the other axis
 
 /* Dual x axis mean having a printer with x motors and each controls one
 extruder position. In that case you can also have different resolutions for the
-2 motors. */
+2 motors. 
+DUAL_X_AXIS has 2 working modes, selectable with DUAL_X_AXIS_MODE:
+- 0 is legacy mode. This is the way DUAL_X has always been working in Repetier. With this mode
+  you need to configure both extruders XOffset relative to X0 on the bed. When toolchange command
+  is issued, the current tool will be parked and the new one will be unparked and positioned at the
+  last X coordinate before the switch, unless LAZY_DUAL_X_AXIS is set to 1, which will make the new
+  extruder stay parked until the next X,Y or Z move.
+ 
+- 1 is the new mode. In this mode you need to adjust X_MIN_POS, X_MAX_LENGTH and right extruder Xoffset
+  to fit your particular setup. Usually, X_MIN_POS will be a negative number which will be exactly the
+  distance from left extruder home position to bed X0.
+  X_MAX_LENGTH will have to be the distance between left carriage home position and just before hitting
+   the right carriage in park position, while XOffset of the right carriage will have to be the distance (in steps)
+  from right home position to bed X0. XOffset of left carriage must be 0.
+  In this mode, when tool switch command is issued, the current extruder will be parked and the new one will
+  be unparked and positioned at the last X coordinate, unless that coordinate is outside its reach (that would 
+  be the opposite carriage parking spot).
+  M606 command will be available to move the current carriage to a position relative to its home position.
+*/
 #define DUAL_X_AXIS 0
 #define DUAL_X_RESOLUTION 0
 #define X2AXIS_STEPS_PER_MM 100
+#define LAZY_DUAL_X_AXIS 0
+#define DUAL_X_AXIS_MODE 0
 
 #define FEATURE_TWO_YSTEPPER 0
 #define Y2_STEP_PIN   E1_STEP_PIN
@@ -1562,6 +1606,7 @@ to recalibrate z.
 #define Z_PROBE_XY_SPEED 150
 #define Z_PROBE_SWITCHING_DISTANCE 1.5 // Distance to safely switch off probe after it was activated
 #define Z_PROBE_REPETITIONS 5 // Repetitions for probing at one point. 
+#define Z_PROBE_USE_MEDIAN 0 // 1 = use middle value, 0 = use average of measurements.
 /** The height is the difference between activated probe position and nozzle height. */
 #define Z_PROBE_HEIGHT 39.91
 /** These scripts are run before resp. after the z-probe is done. Add here code to activate/deactivate probe if needed. */
@@ -1707,6 +1752,7 @@ Always hard to say since the other angle is 89° in this case!
 // Uncomment to enable or change card detection pin. With card detection the card is mounted on insertion.
 #define SDCARDDETECT -1
 // Change to true if you get a inserted message on removal.
+#undef SDCARDDETECTINVERTED
 #define SDCARDDETECTINVERTED false
 #endif
 /** Show extended directory including file length. Don't use this with Pronterface! */
@@ -1831,6 +1877,7 @@ the language can be switched any time. */
 #define LANGUAGE_CZ_ACTIVE 1 // Czech
 #define LANGUAGE_PL_ACTIVE 1 // Polish
 #define LANGUAGE_TR_ACTIVE 1 // Turkish
+#define LANGUAGE_RU_ACTIVE 1 // Russian
 
 /* Some displays loose their settings from time to time. Try uncommenting the 
 auto-repair function if this is the case. It is not supported for all display

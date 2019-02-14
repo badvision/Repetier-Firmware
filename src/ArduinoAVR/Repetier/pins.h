@@ -1006,7 +1006,8 @@ STEPPER_CURRENT_CONTROL
 //29 on Melzi1284p A2
 #define PROBE_PIN          -1    
 
-#define LED_PIN            27
+// Set LED_PIN to 27 if it is not used as beeper pin for display
+#define LED_PIN            -1
 
 #define ORIG_FAN_PIN            4
 
@@ -3007,13 +3008,283 @@ S3(ext)=9
 
 #endif
 
+#if MOTHERBOARD == 310
+#define KNOWN_BOARD
+/*****************************************************************
+* RAMBo EInsy Pin Assignments
+******************************************************************/
+
+#ifndef __AVR_ATmega2560__
+#error Oops!  Make sure you have 'Arduino Mega 2560' selected from the 'Tools -> Boards' menu.
+#endif
+
+#define TMC2130_X_CS_PIN 41     //PG0
+#define TMC2130_Y_CS_PIN 39     //PG2
+#define TMC2130_Z_CS_PIN 67     //PK5 A13 67
+#define TMC2130_EXT0_CS_PIN 66  //PK4 A12 66
+
+//#define STEPPER_CURRENT_CONTROL CURRENT_CONTROL_MANUAL
+
+#define ORIG_X_STEP_PIN     37
+#define ORIG_X_DIR_PIN      49
+#define ORIG_X_MIN_PIN      12
+#define ORIG_X_MAX_PIN      -1
+#define ORIG_X_ENABLE_PIN   29
+
+#define ORIG_Y_STEP_PIN     36
+#define ORIG_Y_DIR_PIN      48
+#define ORIG_Y_MIN_PIN      11
+#define ORIG_Y_MAX_PIN      -1
+#define ORIG_Y_ENABLE_PIN   28
+
+#define ORIG_Z_STEP_PIN     35
+#define ORIG_Z_DIR_PIN      47
+#define ORIG_Z_MIN_PIN      10
+#define ORIG_Z_MAX_PIN      -1
+#define ORIG_Z_ENABLE_PIN   27
+
+#define HEATER_0_PIN   3
+#define TEMP_0_PIN     0
+
+#define HEATER_1_PIN   4
+// This is T2 on the board!
+#define TEMP_1_PIN     2
+
+#define HEATER_2_PIN   4
+// This is T1 on the board!
+#define TEMP_2_PIN     5
+// T3 on board
+#define TEMP_3_PIN     3
+
+#define ORIG_E0_STEP_PIN    34 // PC3
+#define ORIG_E0_DIR_PIN     43 // PL6
+#define ORIG_E0_ENABLE_PIN  26 // PA4
+
+
+#define SDPOWER        -1
+
+#define SDSS           77
+
+#define LED_PIN        13
+#define ORIG_FAN_PIN      6
+#define ORIG_FAN2_PIN    -1
+#define ORIG_FAN3_PIN    -1
+#define ORIG_PS_ON_PIN   -1
+#define SUICIDE_PIN    -1  //PIN that has to be turned on right after start, to keep power flowing.
+
+#define E0_PINS ORIG_E0_STEP_PIN,ORIG_E0_DIR_PIN,ORIG_E0_ENABLE_PIN,E0_MS1_PIN,E0_MS2_PIN,
+
+#define SCK_PIN          52
+#define MISO_PIN         50
+#define MOSI_PIN         51
+
+
+
+#define HEATER_BED_PIN       4 //PG5
+#define TEMP_BED_PIN         2 //A2
+
+#define HEATER_0_PIN         3 //PE5
+#define TEMP_0_PIN           0 //A0
+
+#define HEATER_1_PIN        -1
+#define TEMP_1_PIN           1 //A1
+
+#define HEATER_2_PIN        -1
+#define TEMP_2_PIN          -1
+
+#define TEMP_AMBIENT_PIN     5 //A5
+
+#define TEMP_PINDA_PIN       3 //A3
+
+#define VOLT_PWR_PIN         4 //A4
+#define VOLT_BED_PIN         9 //A9
+
+
+#define E0_TMC2130_CS       66
+#define E0_TMC2130_DIAG     65
+#define E0_STEP_PIN         34
+#define E0_DIR_PIN          43
+#define E0_ENABLE_PIN       26
+#define E0_MS1_PIN          -1
+#define E0_MS2_PIN          -1
+
+#define SDPOWER             -1
+#define SDSS                77
+#define LED_PIN             13
+#define FAN_PIN              6
+#define FAN_1_PIN           -1
+#define PS_ON_PIN           -1
+#define KILL_PIN            -1  // 80 with Smart Controller LCD
+#define SUICIDE_PIN         -1  // PIN that has to be turned on right after start, to keep power flowing.
+
+#define BEEPER_PIN              84  // Beeper on AUX-4
+#define UI_DISPLAY_RS_PIN       82
+#define UI_DISPLAY_RW_PIN       -1
+#define UI_DISPLAY_ENABLE_PIN   61 // !!! changed from 18 (EINY03)
+#define UI_DISPLAY_D4_PIN	    59 // !!! changed from 19 (EINY03)
+#define UI_DISPLAY_D5_PIN       70
+#define UI_DISPLAY_D6_PIN       85
+#define UI_DISPLAY_D7_PIN       71
+
+//buttons are directly attached using AUX-2
+#define UI_ENCODER_A                72
+#define UI_ENCODER_B                14
+#define UI_ENCODER_CLICK            9  // the click
+
+#define SDCARDDETECT           15
+
+#endif
+
+// ================================
+// Fysetc F6
+//
+// https://wiki.fysetc.com/F6_V1.3/
+// If using TMC2130 drives note this:
+// https://discuss.toms3d.org/hardware-f6/be-aware-with-chinese-fysetc-tmc2130-t384.html
+// ================================
+#if MOTHERBOARD == 190
+
+#ifndef __AVR_ATmega1280__
+#ifndef __AVR_ATmega2560__
+
+#error Oops!  Make sure you have 'Arduino Mega' selected from the 'Tools -> Boards' menu.
+#endif
+#endif
+
+#define ORIG_X_STEP_PIN         54
+#define ORIG_X_DIR_PIN          55
+#define ORIG_X_ENABLE_PIN       38
+#ifndef ORIG_X_CS_PIN
+#define ORIG_X_CS_PIN         70
+#endif
+
+#define ORIG_X_MIN_PIN          63
+#define ORIG_X_MAX_PIN          64
+
+#define ORIG_Y_STEP_PIN         60
+#define ORIG_Y_DIR_PIN          61
+#define ORIG_Y_ENABLE_PIN       56
+#ifndef ORIG_Y_CS_PIN
+#define ORIG_Y_CS_PIN         39
+#endif
+
+#define ORIG_Y_MIN_PIN          14
+#define ORIG_Y_MAX_PIN          15
+
+#define ORIG_Z_STEP_PIN         43
+#define ORIG_Z_DIR_PIN          48
+#define ORIG_Z_ENABLE_PIN       58
+#ifndef ORIG_Z_CS_PIN
+#define ORIG_Z_CS_PIN         74
+#endif
+
+#define ORIG_Z_MIN_PIN          12
+// some images show z max pin 9 but v1.3 pin description says 2!
+#define ORIG_Z_MAX_PIN          2
+
+#define ORIG_E0_STEP_PIN         26
+#define ORIG_E0_DIR_PIN          28
+#define ORIG_E0_ENABLE_PIN       24
+#ifndef ORIG_E0_CS_PIN
+#define ORIG_E0_CS_PIN        47
+#endif
+
+#define ORIG_E1_STEP_PIN         36
+#define ORIG_E1_DIR_PIN          34
+#define ORIG_E1_ENABLE_PIN       30
+#ifndef ORIG_E1_CS_PIN
+#define ORIG_E1_CS_PIN        32
+#endif
+
+#define ORIG_E2_STEP_PIN         59
+#define ORIG_E2_DIR_PIN          57
+#define ORIG_E2_ENABLE_PIN       40
+#ifndef ORIG_E2_CS_PIN
+#define ORIG_E2_CS_PIN        42
+#endif
+
+//
+// LCDs and Controllers
+//
+#define BEEPER_PIN         37
+#define SDCARDDETECT       49
+
+#define UI_DISPLAY_RS_PIN        16
+#define UI_DISPLAY_ENABLE_PIN    17
+#define UI_DISPLAY_D4_PIN        23
+#define UI_DISPLAY_D5_PIN        25
+#define UI_DISPLAY_D6_PIN        27
+#define UI_DISPLAY_D7_PIN        29
+
+#define UI_ENCODER_A             31
+#define UI_ENCODER_B             33
+#define UI_ENCODER_CLICK         35
+
+
+#define SDPOWER            -1
+
+#define SDSS               53
+
+#define LED_PIN            13
+
+#define ORIG_PS_ON_PIN          11
+
+#define KILL_PIN           41
+
+#define HEATER_0_PIN      5
+// Bed heater
+#define HEATER_1_PIN      8
+#define HEATER_2_PIN      6
+#define HEATER_3_PIN      7
+
+#define ORIG_FAN_PIN       44
+
+#define TEMP_0_PIN        12
+#define TEMP_2_PIN        13
+#define TEMP_3_PIN        14
+// Bed sensor
+#define TEMP_1_PIN        15
+
+#define FAN_PIN            44
+#define FAN2_PIN           45
+#define FAN3_PIN           46
+
+#define FAN_TEMP_PIN       4
+#define POWER_TEMP_PIN     3
+
+#define E0_PINS ORIG_E0_STEP_PIN,ORIG_E0_DIR_PIN,ORIG_E0_ENABLE_PIN,
+#define E1_PINS ORIG_E1_STEP_PIN,ORIG_E1_DIR_PIN,ORIG_E1_ENABLE_PIN,
+#define E2_PINS ORIG_E2_STEP_PIN,ORIG_E2_DIR_PIN,ORIG_E2_ENABLE_PIN,
+
+#define SCK_PIN          52
+#define MISO_PIN         50
+#define MOSI_PIN         51
+#define MAX6675_SS       53
+#endif
 
 #if MOTHERBOARD == 999
 #define KNOWN_BOARD
 #include "userpins.h"
 #endif
 
-
+#if defined(ORIG_X_CS_PIN) && !defined(TMC2130_X_CS_PIN)
+#define TMC2130_X_CS_PIN ORIG_X_CS_PIN
+#endif
+#if defined(ORIG_Y_CS_PIN) && !defined(TMC2130_Y_CS_PIN)
+#define TMC2130_Y_CS_PIN ORIG_Y_CS_PIN
+#endif
+#if defined(ORIG_Z_CS_PIN) && !defined(TMC2130_Z_CS_PIN)
+#define TMC2130_Z_CS_PIN ORIG_Z_CS_PIN
+#endif
+#if defined(ORIG_E0_CS_PIN) && !defined(TMC2130_EXT0_CS_PIN)
+#define TMC2130_EXT0_CS_PIN ORIG_E0_CS_PIN
+#endif
+#if defined(ORIG_E1_CS_PIN) && !defined(TMC2130_EXT1_CS_PIN)
+#define TMC2130_EXT1_CS_PIN ORIG_E1_CS_PIN
+#endif
+#if defined(ORIG_E2_CS_PIN) && !defined(TMC2130_EXT2_CS_PIN)
+#define TMC2130_EXT2_CS_PIN ORIG_E2_CS_PIN
+#endif
 
 #ifndef CPU_ARCH  // Set default architecture
 #define CPU_ARCH ARCH_AVR

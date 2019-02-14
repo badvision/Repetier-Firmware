@@ -75,6 +75,7 @@ To override EEPROM settings with config settings, set EEPROM_MODE 0
 // Printrboard (at90usb)      = 9 // requires Teensyduino
 // Printrboard Ref. F or newer= 92 // requires Teensyduino
 // Foltyn 3D Master           = 12
+// Fysetc F6                  = 190
 // MegaTronics 1.0            = 70
 // Megatronics 2.0            = 701
 // Megatronics 3.0            = 703 // Thermistors predefined not thermocouples
@@ -82,6 +83,7 @@ To override EEPROM settings with config settings, set EEPROM_MODE 0
 // RUMBA                      = 80  // Get it from reprapdiscount
 // FELIXprinters              = 101
 // Rambo                      = 301
+// Rambo EInsy                = 310
 // PiBot for Repetier V1.0-1.3= 314
 // PiBot for Repetier V1.4    = 315
 // PiBot Controller V2.0      = 316
@@ -97,6 +99,8 @@ To override EEPROM settings with config settings, set EEPROM_MODE 0
 
 #include "pins.h"
 
+/** Enable rescue system that helps hosts to reconnect and continue a print after a disconnect. */
+#define HOST_RESCUE 1
 // Override pin definitions from pins.h
 //#define FAN_PIN   4  // Extruder 2 uses the default fan output, so move to an other pin
 //#define EXTERNALSERIAL  use Arduino serial library instead of build in. Requires more ram, has only 63 byte input buffer.
@@ -112,7 +116,7 @@ We can connect BlueTooth to serial converter module directly to boards based on 
   c) pin 17 and 18 of AUX4 connector, then set BLUETOOTH_SERIAL to 2 (RX from BT to AUX4 p18, TX from BT to AUX4 p17)
   Comment out or set the BLUETOOTH_SERIAL to 0 or -1 to disable this feature.
 */
-#define BLUETOOTH_SERIAL   1                      // Port number (1..3) - For RUMBA use 3
+#define BLUETOOTH_SERIAL   -1                      // Port number (1..3) - For RUMBA use 3
 #define BLUETOOTH_BAUD     115200                 // communication speed
 
 // Uncomment the following line if you are using Arduino compatible firmware made for Arduino version earlier then 1.0
@@ -277,6 +281,7 @@ controlled by settings in extruder 0 definition. */
 // 100 is AD595
 // 101 is MAX6675
 // 102 is MAX31855
+// 103 is MAX31855 with software SPI, sensor pin is data input!
 #define EXT0_TEMPSENSOR_TYPE 1
 // Analog input pin for reading temperatures or pin enabling SS for MAX6675
 #define EXT0_TEMPSENSOR_PIN TEMP_0_PIN
@@ -705,6 +710,13 @@ Value is used for all generic tables created. */
 //#define SUPPORT_MAX6675
 // uncomment the following line for MAX31855 support.
 //#define SUPPORT_MAX31855
+// If you use software spi for max31855 all chips need to use same CS/CLK pin. Sensor pin is MISO pin!
+//#define SUPPORT_MAX31855_SW
+#define MAX31855_SW_CS  47
+#define MAX31855_SW_CLK 32
+
+/** WIth value 1 you can adjust measured temperature into temp = measured * gain + bias. */
+#define TEMP_GAIN 0
 
 // ############# Heated bed configuration ########################
 
@@ -983,6 +995,16 @@ on this endstop.
 #define X_MIN_POS 0
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
+
+// Park position used when pausing from firmware side
+#if DRIVE_SYSTEM == DELTA
+#define PARK_POSITION_X (0)
+#define PARK_POSITION_Y (70)
+#else 
+#define PARK_POSITION_X (X_MIN_POS)
+#define PARK_POSITION_Y (Y_MIN_POS + Y_MAX_LENGTH)
+#endif
+#define PARK_POSITION_Z_RAISE 10
 
 // ##########################################################################################
 // ##                           Movement settings                                          ##
@@ -1408,11 +1430,30 @@ instead of driving them with a single stepper. The same works for the other axis
 
 /* Dual x axis mean having a printer with x motors and each controls one
 extruder position. In that case you can also have different resolutions for the
-2 motors. */
+2 motors. 
+DUAL_X_AXIS has 2 working modes, selectable with DUAL_X_AXIS_MODE:
+- 0 is legacy mode. This is the way DUAL_X has always been working in Repetier. With this mode
+  you need to configure both extruders XOffset relative to X0 on the bed. When toolchange command
+  is issued, the current tool will be parked and the new one will be unparked and positioned at the
+  last X coordinate before the switch, unless LAZY_DUAL_X_AXIS is set to 1, which will make the new
+  extruder stay parked until the next X,Y or Z move.
+ 
+- 1 is the new mode. In this mode you need to adjust X_MIN_POS, X_MAX_LENGTH and right extruder Xoffset
+  to fit your particular setup. Usually, X_MIN_POS will be a negative number which will be exactly the
+  distance from left extruder home position to bed X0.
+  X_MAX_LENGTH will have to be the distance between left carriage home position and just before hitting
+   the right carriage in park position, while XOffset of the right carriage will have to be the distance (in steps)
+  from right home position to bed X0. XOffset of left carriage must be 0.
+  In this mode, when tool switch command is issued, the current extruder will be parked and the new one will
+  be unparked and positioned at the last X coordinate, unless that coordinate is outside its reach (that would 
+  be the opposite carriage parking spot).
+  M606 command will be available to move the current carriage to a position relative to its home position.
+*/
 #define DUAL_X_AXIS 0
 #define DUAL_X_RESOLUTION 0
 #define X2AXIS_STEPS_PER_MM 100
-
+#define LAZY_DUAL_X_AXIS 0
+#define DUAL_X_AXIS_MODE 0
 
 #define FEATURE_TWO_YSTEPPER 0
 #define Y2_STEP_PIN   E1_STEP_PIN
@@ -1457,15 +1498,29 @@ https://github.com/teemuatlut/TMC2130Stepper
 // #define SENSORLESS_HOMING
 
 // The drivers with set CS pin will be used, all others are normal step/dir/enable drivers
+#ifndef TMC2130_X_CS_PIN
 #define TMC2130_X_CS_PIN -1
+#endif
+#ifndef TMC2130_Y_CS_PIN
 #define TMC2130_Y_CS_PIN -1
+#endif
+#ifndef TMC2130_Z_CS_PIN
 #define TMC2130_Z_CS_PIN -1
+#endif
+#ifndef TMC2130_EXT0_CS_PIN
 #define TMC2130_EXT0_CS_PIN -1
+#endif
+#ifndef TMC2130_EXT1_CS_PIN
 #define TMC2130_EXT1_CS_PIN -1
+#endif
+#ifndef TMC2130_EXT2_CS_PIN
 #define TMC2130_EXT2_CS_PIN -1
+#endif
 
 // Per-axis current setting in mA { X, Y, Z, E0, E1, E2}
+#ifndef MOTOR_CURRENT
 #define MOTOR_CURRENT {1000,1000,1000,1000,1000,1000}
+#endif
 
 /**  Global settings - these apply to all configured drivers
      Per-axis values will override these
@@ -1582,6 +1637,7 @@ to recalibrate z.
 #define Z_PROBE_XY_SPEED 150
 #define Z_PROBE_SWITCHING_DISTANCE 1.5 // Distance to safely switch off probe after it was activated
 #define Z_PROBE_REPETITIONS 5 // Repetitions for probing at one point.
+#define Z_PROBE_USE_MEDIAN 0 // 1 = use middle value, 0 = use average of measurements.
 /** Distance between nozzle and bed when probe triggers. */
 #define Z_PROBE_HEIGHT 39.91
 /** These scripts are run before resp. after the z-probe is done. Add here code to activate/deactivate probe if needed. */
@@ -1734,6 +1790,7 @@ Always hard to say since the other angle is 89° in this case!
 #undef SDCARDDETECT
 #define SDCARDDETECT -1
 // Change to true if you get a inserted message on removal.
+#undef SDCARDDETECTINVERTED
 #define SDCARDDETECTINVERTED false
 #endif
 /** Show extended directory including file length. Don't use this with Pronterface! */
@@ -1860,6 +1917,7 @@ and strange errors occur. 8-9 languages normally work.
 #define LANGUAGE_CZ_ACTIVE 0 // Czech
 #define LANGUAGE_PL_ACTIVE 1 // Polish
 #define LANGUAGE_TR_ACTIVE 1 // Turkish
+#define LANGUAGE_RU_ACTIVE 1 // Russian
 
 /* Some displays loose their settings from time to time. Try uncommenting the
 auto-repair function if this is the case. It is not supported for all display

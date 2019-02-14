@@ -257,10 +257,18 @@ public:
 #endif
 #endif
     static uint16_t menuMode;
+	static bool failedMode; // In failed mode only M110 and M999 is working
+	static uint8_t rescueOn;           // 1 is rescue is enabled
+	static fast8_t safetyParked;       /// True if moved to a safety position to protect print
 #if DUAL_X_RESOLUTION || defined(DOXYGEN)
     static float axisX1StepsPerMM;
     static float axisX2StepsPerMM;
 #endif
+#if DUAL_X_AXIS_MODE > 0 && LAZY_DUAL_X_AXIS == 0
+    static float x1Length;
+    static float x1Min;
+#endif
+    	
     static float axisStepsPerMM[]; ///< Resolution of each axis in steps per mm.
     static float invAxisStepsPerMM[]; ///< 1/axisStepsPerMM for faster computation.
     static float maxFeedrate[]; ///< Maximum feedrate in mm/s per axis.
@@ -285,7 +293,9 @@ public:
     static uint32_t stepNumber;         ///< Step number in current move.
     static float coordinateOffset[Z_AXIS_ARRAY];
     static int32_t currentPositionSteps[E_AXIS_ARRAY];     ///< Position in steps from origin.
-    static float currentPosition[Z_AXIS_ARRAY]; ///< Position in global coordinates
+    static float currentPosition[E_AXIS_ARRAY]; ///< Position in global coordinates
+    static float destinationPositionTransformed[E_AXIS_ARRAY]; ///< Target position in transformed coordinates
+    static float currentPositionTransformed[E_AXIS_ARRAY]; ///< Target position in transformed coordinates
     static float lastCmdPos[Z_AXIS_ARRAY]; ///< Last coordinates (global coordinates) send by g-codes
     static int32_t destinationSteps[E_AXIS_ARRAY];         ///< Target position in steps.
     static millis_t lastTempReport;
@@ -387,6 +397,9 @@ public:
 #if MULTI_ZENDSTOP_HOMING || defined(DOXYGEN)
 	static fast8_t multiZHomeFlags;  // 1 = move Z0, 2 = move Z1
 #endif
+#if CASE_LIGHTS_PIN > -1
+	static fast8_t lightOn;
+#endif
     static float memoryX;
     static float memoryY;
     static float memoryZ;
@@ -407,7 +420,8 @@ public:
     static int maxLayer; // -1 = unknown
     static char printName[21]; // max. 20 chars + 0
     static float progress;
-    static fast8_t wizardStackPos;
+    static fast8_t breakLongCommand; // Set by M108 to stop long tasks
+	static fast8_t wizardStackPos;
     static wizardVar wizardStack[WIZARD_STACK_SIZE];
 
 #if defined(DRV_TMC2130)
@@ -771,7 +785,8 @@ public:
 
     static INLINE void setBlockingReceive(uint8_t b) {
         flag2 = (b ? flag2 | PRINTER_FLAG2_BLOCK_RECEIVING : flag2 & ~PRINTER_FLAG2_BLOCK_RECEIVING);
-        Com::printFLN(b ? Com::tPauseCommunication : Com::tContinueCommunication);
+		// Blocking enables busy - pause would allow communication!
+        // Com::printFLN(b ? Com::tPauseCommunication : Com::tContinueCommunication);
     }
 
     static INLINE uint8_t isAutoretract() {
@@ -1249,6 +1264,7 @@ public:
     static void pausePrint();
     static void continuePrint();
     static void stopPrint();
+	static void moveToParkPosition();
 #if FEATURE_Z_PROBE || defined(DOXYGEN)
     /** \brief Prepares printer for probing commands.
 
@@ -1260,7 +1276,31 @@ public:
     */
     static void prepareForProbing();
 #endif
+    static void enableRescue(bool on);
+    static bool isRescue();
+    static bool isRescueRequired();
+    static void rescueReport(); // Send report
+    static void rescueStoreReceivedPosition();
+    static void rescueStorePosition();
+    static void rescueRecover();
+    static void rescueSetup();
+    static void rescueReset();
+    static int rescueStartTool();
+    static void handlePowerLoss();
+    static void parkSafety();
+    static void unparkSafety();
+    static void enableFailedModeP(PGM_P msg);
+    static void enableFailedMode(char* msg);
+
 #if defined(DRV_TMC2130)
+#define TRINAMIC_WAIT_RESOLUTION_uS 100
+/// Wait for boolean 'condition' to become true until 'timeout' (in miliseconds)
+#define WAIT_UNTIL(condition, timeout) \
+for(uint16_t count = 0; !condition || count < ((uint16_t)timeout * (uint16_t)1000 / (uint16_t)TRINAMIC_WAIT_RESOLUTION_uS); count++) { \
+	HAL::delayMicroseconds(TRINAMIC_WAIT_RESOLUTION_uS); \
+}
+/// Wait for driver standstill condition until timeout (in miliseconds)
+#define TRINAMIC_WAIT_FOR_STANDSTILL(driver, timeout) WAIT_UNTIL(driver->stst(), timeout)
     static void configTMC2130(TMC2130Stepper* tmc_driver, bool tmc_stealthchop, int8_t tmc_sgt,
       uint8_t tmc_pwm_ampl, uint8_t tmc_pwm_grad, bool tmc_pwm_autoscale, uint8_t tmc_pwm_freq);
     static void tmcPrepareHoming(TMC2130Stepper* tmc_driver, uint32_t coolstep_sp_min);

@@ -828,17 +828,41 @@ void u8PrintChar(char c) {
     case 0x7E: // right arrow
         u8g_SetFont(&u8g, u8g_font_6x12_67_75);
         u8_tx += u8g_DrawGlyph(&u8g, u8_tx, u8_ty, 0x52);
+        #if LANGUAGE_RU_ACTIVE // Switch font
+                    if (Com::selectedLanguage != LANGUAGE_RU_ID) {
+                        u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                        } else {
+                        u8g_SetFont(&u8g, UI_FONT_DEFAULT_RU);
+                        }
+                        #else
         u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                     #endif
         break;
     case CHAR_SELECTOR:
         u8g_SetFont(&u8g, u8g_font_6x12_67_75);
         u8_tx += u8g_DrawGlyph(&u8g, u8_tx, u8_ty, 0xb7);
+                            #if LANGUAGE_RU_ACTIVE // Switch font
+                            if (Com::selectedLanguage != LANGUAGE_RU_ID) {
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                                } else {
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT_RU);
+                                }
+                                #else
         u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                            #endif
         break;
     case CHAR_SELECTED:
         u8g_SetFont(&u8g, u8g_font_6x12_67_75);
         u8_tx += u8g_DrawGlyph(&u8g, u8_tx, u8_ty, 0xb6);
+#if LANGUAGE_RU_ACTIVE // Switch font
+        if (Com::selectedLanguage != LANGUAGE_RU_ID) {
+            u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+        } else {
+            u8g_SetFont(&u8g, UI_FONT_DEFAULT_RU);
+        }
+#else
         u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+#endif
         break;
     case 253:      //shift one pixel to right
         u8_tx++;
@@ -912,7 +936,7 @@ void initializeLCD() {
     u8g_InitSPI(&u8g, &u8g_dev_ssd1306_128x64_sw_spi,  UI_DISPLAY_D4_PIN, UI_DISPLAY_ENABLE_PIN, UI_DISPLAY_RS_PIN, U8G_PIN_NONE, U8G_PIN_NONE);
 #endif
 #ifdef U8GLIB_SH1106_SW_SPI
-    u8g_InitSPI(&u8g, &u8g_dev_sh1106_128x64_sw_spi,  UI_DISPLAY_D4_PIN, UI_DISPLAY_ENABLE_PIN, UI_DISPLAY_RS_PIN, U8G_PIN_NONE, U8G_PIN_NONE);
+    u8g_InitSPI(&u8g, &u8g_dev_sh1106_128x64_sw_spi,  UI_DISPLAY_D4_PIN, UI_DISPLAY_ENABLE_PIN, UI_DISPLAY_RS_PIN, UI_DISPLAY_D5_PIN, U8G_PIN_NONE);
 #endif
 #ifdef U8GLIB_KS0108_FAST
     u8g_Init8Bit(&u8g, &u8g_dev_ks0108_128x64_fast, UI_DISPLAY_D0_PIN, UI_DISPLAY_D1_PIN, UI_DISPLAY_D2_PIN, UI_DISPLAY_D3_PIN, UI_DISPLAY_D4_PIN, UI_DISPLAY_D5_PIN, UI_DISPLAY_D6_PIN, UI_DISPLAY_D7_PIN, UI_DISPLAY_ENABLE_PIN, UI_DISPLAY_CS1, UI_DISPLAY_CS2,
@@ -940,7 +964,15 @@ void initializeLCD() {
         u8g_SetColorIndex(&u8g, 0);
     } while( u8g_NextPage(&u8g) );
 
+#if LANGUAGE_RU_ACTIVE // Switch font
+    if (Com::selectedLanguage != LANGUAGE_RU_ID) {
+        u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+    } else {
+        u8g_SetFont(&u8g, UI_FONT_DEFAULT_RU);
+    }
+#else
     u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+#endif
     u8g_SetColorIndex(&u8g, 1);
     uid.lastSwitch = uid.lastRefresh = HAL::timeInMilliseconds();
 }
@@ -1362,7 +1394,12 @@ void UIDisplay::parse(const char *txt, bool ram) {
 #endif
             if (c2 == 'z')
 #if MIN_HARDWARE_ENDSTOP_Z
+#if Z_PROBE_PIN == Z_MIN_PIN
+				// In this case z min is always false, return z probe signal instead
+                addStringP(Endstops::zProbe() ? ui_selected : ui_unselected);
+#else
                 addStringP(Endstops::zMin() ? ui_selected : ui_unselected);
+#endif
 #else
                 addStringP(Com::tSpace);
 #endif
@@ -1391,7 +1428,7 @@ void UIDisplay::parse(const char *txt, bool ram) {
                 //char c2 = (ram ? *(txt++) : pgm_read_byte(txt++));
                 txt++; // just skip c sign
                 ivalue = 0;
-				c2 = 'c';
+                c2 = 'c';
             } else ivalue = UI_TEMP_PRECISION;
 
             if(c2 == 'r') { // Extruder relative mode
@@ -1497,7 +1534,7 @@ void UIDisplay::parse(const char *txt, bool ram) {
         case 'l':
             if(c2 == 'a') addInt(lastAction, 4);
 #if defined(CASE_LIGHTS_PIN) && CASE_LIGHTS_PIN >= 0
-            else if(c2 == 'o') addStringOnOff(READ(CASE_LIGHTS_PIN));        // Lights on/off
+            else if(c2 == 'o') addStringOnOff(Printer::lightOn);        // Lights on/off
 #endif
 #if FEATURE_AUTOLEVEL
             else if(c2 == 'l') addStringOnOff((Printer::isAutolevelActive()));        // Autolevel on/off
@@ -1516,9 +1553,9 @@ void UIDisplay::parse(const char *txt, bool ram) {
                         uid.printCols[col++] = '%';
                 } else
 #endif
-{
+                {
                     parse(statusMsg, true);
-					}
+                }
                 break;
             }
             if(c2 == 'c') {
@@ -1678,6 +1715,13 @@ void UIDisplay::parse(const char *txt, bool ram) {
                 float dist = Printer::filamentPrinted * 0.001;
 #endif
                 addFloat(dist, (dist > 9999 ? 6 : 4), (dist > 9999 ? 0 : 1));
+            } else if(c2 == 'k') { // Filament usage in km
+#if EEPROM_MODE
+                float dist = 0.001 * (Printer::filamentPrinted * 0.001 + HAL::eprGetFloat(EPR_PRINTING_DISTANCE));
+#else
+                float dist = 0.001 * (Printer::filamentPrinted * 0.001);
+#endif
+                addFloat(dist, (dist > 999 ? 5 : 3), (dist > 9999 ? 1 : 2));
             } else if(c2 == 'h') { // Printing time in hours
 #if EEPROM_MODE
                 bool alloff = true;
@@ -1888,36 +1932,58 @@ uint16_t nFilesOnCard;
 void UIDisplay::updateSDFileCount() {
 #if SDSUPPORT
     dir_t* p = NULL;
-    SdBaseFile *root = sd.fat.vwd();
-
+    FatFile *root = sd.fat.vwd();
+    FatFile file;
     root->rewind();
     nFilesOnCard = 0;
-    while ((p = root->getLongFilename(p, NULL, 0, NULL))) {
-        if (! (DIR_IS_FILE(p) || DIR_IS_SUBDIR(p)))
+    while (file.openNext(root, O_READ)) {
+        HAL::pingWatchdog();
+        file.getName(tempLongFilename, LONG_FILENAME_LENGTH);
+        //while ((p = root->getLongFilename(p, NULL, 0, NULL))) {
+        // if (! (file.isFile() || file.isDir())) continue;
+        if (folderLevel >= SD_MAX_FOLDER_DEPTH && strcmp(tempLongFilename, "..") == 0) {
+            file.close();
             continue;
-        if (folderLevel >= SD_MAX_FOLDER_DEPTH && DIR_IS_SUBDIR(p) && !(p->name[0] == '.' && p->name[1] == '.'))
-            continue;
+        }
+        if (tempLongFilename[0] == '.' && tempLongFilename[1] != '.') {
+            file.close();
+            continue; // MAC CRAP
+        }
         nFilesOnCard++;
+        file.close();
         if (nFilesOnCard > 5000) // Arbitrary maximum, limited only by how long someone would scroll
             return;
     }
+	// Com::printFLN(PSTR("FCount:"), (int32_t)nFilesOnCard);
 #endif
 }
 
 void getSDFilenameAt(uint16_t filePos, char *filename) {
 #if SDSUPPORT
     dir_t* p = NULL;
-    SdBaseFile *root = sd.fat.vwd();
-
+    FatFile *root = sd.fat.vwd();
+    FatFile file;
     root->rewind();
-    while ((p = root->getLongFilename(p, tempLongFilename, 0, NULL)) != NULL) {
+    while (file.openNext(root, O_READ)) {
         HAL::pingWatchdog();
-        if (!DIR_IS_FILE(p) && !DIR_IS_SUBDIR(p)) continue;
-        if(uid.folderLevel >= SD_MAX_FOLDER_DEPTH && DIR_IS_SUBDIR(p) && !(p->name[0] == '.' && p->name[1] == '.')) continue;
-        if (filePos--)
+        file.getName(tempLongFilename, LONG_FILENAME_LENGTH);
+        //while ((p = root->getLongFilename(p, NULL, 0, NULL))) {
+        // if (! (file.isFile() || file.isDir())) continue;
+        if (uid.folderLevel >= SD_MAX_FOLDER_DEPTH && strcmp(tempLongFilename, "..") == 0) {
+            file.close();
             continue;
+        }
+        if (tempLongFilename[0] == '.' && tempLongFilename[1] != '.') {
+            file.close();
+            continue; // MAC CRAP
+        }
+        if (filePos--) {
+            file.close();
+            continue;
+        }
         strcpy(filename, tempLongFilename);
-        if(DIR_IS_SUBDIR(p)) strcat(filename, "/"); // Set marker for directory
+        if(file.isDir()) strcat(filename, "/"); // Set marker for directory
+        file.close();
         break;
     }
 #endif
@@ -1956,41 +2022,52 @@ void sdrefresh(uint16_t &r, char cache[UI_ROWS][MAX_COLS + 1]) {
 #if SDSUPPORT
     dir_t* p = NULL;
     uint16_t offset = uid.menuTop[uid.menuLevel];
-    SdBaseFile *root;
+    FatFile *root;
+    FatFile file;
     uint16_t length, skip;
 
     sd.fat.chdir(uid.cwd);
     root = sd.fat.vwd();
     root->rewind();
-
+	// Com::printFLN(PSTR("sdresfresh"), (int32_t)r);
     skip = (offset > 0 ? offset - 1 : 0);
 
-    while (r + offset < nFilesOnCard + 1 && r < UI_ROWS && (p = root->getLongFilename(p, tempLongFilename, 0, NULL))) {
+    while (r + offset < nFilesOnCard + 1 && r < UI_ROWS && file.openNext(root, O_READ)) {
         HAL::pingWatchdog();
+        file.getName(tempLongFilename, LONG_FILENAME_LENGTH);
+		// Com::printFLN(PSTR("File:"), tempLongFilename);
+        //while ((p = root->getLongFilename(p, NULL, 0, NULL))) {
+        // if (! (file.isFile() || file.isDir())) continue;
+        if (uid.folderLevel >= SD_MAX_FOLDER_DEPTH && strcmp(tempLongFilename, "..") == 0) {
+            file.close();
+            continue;
+        }
+        if (tempLongFilename[0] == '.' && tempLongFilename[1] != '.') {
+            file.close();
+            continue; // MAC CRAP
+        }
         // done if past last used entry
         // skip deleted entry and entries for . and  ..
         // only list subdirectories and files
-        if ((DIR_IS_FILE(p) || DIR_IS_SUBDIR(p))) {
-            if(uid.folderLevel >= SD_MAX_FOLDER_DEPTH && DIR_IS_SUBDIR(p) && !(p->name[0] == '.' && p->name[1] == '.'))
-                continue;
-            if(skip > 0) {
-                skip--;
-                continue;
-            }
-            uid.col = 0;
-            if(r + offset == uid.menuPos[uid.menuLevel])
-                uid.printCols[uid.col++] = CHAR_SELECTOR;
-            else
-                uid.printCols[uid.col++] = ' ';
-            // print file name with possible blank fill
-            if(DIR_IS_SUBDIR(p))
-                uid.printCols[uid.col++] = bFOLD; // Prepend folder symbol
-            length = RMath::min((int)strlen(tempLongFilename), MAX_COLS - uid.col);
-            memcpy(uid.printCols + uid.col, tempLongFilename, length);
-            uid.col += length;
-            uid.printCols[uid.col] = 0;
-            strcpy(cache[r++], uid.printCols);
+        if(skip > 0) {
+            skip--;
+            file.close();
+            continue;
         }
+        uid.col = 0;
+        if(r + offset == uid.menuPos[uid.menuLevel])
+            uid.printCols[uid.col++] = CHAR_SELECTOR;
+        else
+            uid.printCols[uid.col++] = ' ';
+        // print file name with possible blank fill
+        if(DIR_IS_SUBDIR(p))
+            uid.printCols[uid.col++] = bFOLD; // Prepend folder symbol
+        length = RMath::min((int)strlen(tempLongFilename), MAX_COLS - uid.col);
+        memcpy(uid.printCols + uid.col, tempLongFilename, length);
+        uid.col += length;
+        uid.printCols[uid.col] = 0;
+        strcpy(cache[r++], uid.printCols);
+        file.close();
     }
 #endif
 }
@@ -2276,10 +2353,26 @@ void UIDisplay::refreshPage() {
                 u8g_SetColorIndex(&u8g, 1);
                 u8g_draw_box(&u8g, 0, 0, u8g_GetWidth(&u8g), UI_FONT_SMALL_HEIGHT + 1);
                 u8g_SetColorIndex(&u8g, 0);
+                        #if LANGUAGE_RU_ACTIVE //Switch font
+                         if (Com::selectedLanguage != LANGUAGE_RU_ID) {
+                             u8g_SetFont(&u8g, UI_FONT_SMALL);
+                             } else {
+                             u8g_SetFont(&u8g, UI_FONT_SMALL_RU);
+                             }
+                            #else
                 u8g_SetFont(&u8g, UI_FONT_SMALL);
+                            #endif
                 if(u8g_IsBBXIntersection(&u8g, 0, 1, 1, UI_FONT_SMALL_HEIGHT + 1))
                     printU8GRow(1, UI_FONT_SMALL_HEIGHT, head);
+                 #if LANGUAGE_RU_ACTIVE // Switch font
+                            if (Com::selectedLanguage != LANGUAGE_RU_ID) {
                 u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                                } else {
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT_RU);
+                                }
+                                #else
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                            #endif
                 u8g_SetColorIndex(&u8g, 1);
 
                 drawHProgressBar(0, UI_FONT_HEIGHT * 2 + 2, 128, UI_FONT_HEIGHT - 1, Printer::progress);
@@ -2300,7 +2393,15 @@ void UIDisplay::refreshPage() {
 #endif
                 printRow(0, cache[0], NULL, UI_COLS); // Object name
             } else { // not printing
+                #if LANGUAGE_RU_ACTIVE //Switch font
+                         if (Com::selectedLanguage != LANGUAGE_RU_ID) {
+                             u8g_SetFont(&u8g, UI_FONT_SMALL);
+                             } else {
+                             u8g_SetFont(&u8g, UI_FONT_SMALL_RU);
+                             }
+                            #else
                 u8g_SetFont(&u8g, UI_FONT_SMALL);
+                            #endif
                 uint8_t py = 8;
                 for(uint8_t r = 0; r < 3; r++) {
                     if(u8g_IsBBXIntersection(&u8g, 0, py - UI_FONT_SMALL_HEIGHT, 1, UI_FONT_SMALL_HEIGHT))
@@ -2335,7 +2436,15 @@ void UIDisplay::refreshPage() {
                     u8g_draw_vline(&u8g, 112, 0, 32);
                     u8g_draw_vline(&u8g, 62, 0, 54);
                 }
+                     #if LANGUAGE_RU_ACTIVE // Switch font
+                            if (Com::selectedLanguage != LANGUAGE_RU_ID) {
                 u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                                } else {
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT_RU);
+                                }
+                                #else
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                            #endif
             } // not printing
         } // menu level 0 page 0
         else {
@@ -2345,19 +2454,51 @@ void UIDisplay::refreshPage() {
             u8g_SetColorIndex(&u8g, 1);
             u8g_draw_box(&u8g, 0, 0, u8g_GetWidth(&u8g), UI_FONT_SMALL_HEIGHT + 1);
             u8g_SetColorIndex(&u8g, 0);
+            #if LANGUAGE_RU_ACTIVE //Switch font
+                         if (Com::selectedLanguage != LANGUAGE_RU_ID) {
             u8g_SetFont(&u8g, UI_FONT_SMALL);
+                             } else {
+                             u8g_SetFont(&u8g, UI_FONT_SMALL_RU);
+                             }
+                            #else
+                            u8g_SetFont(&u8g, UI_FONT_SMALL);
+                            #endif
             if(u8g_IsBBXIntersection(&u8g, 0, 1, 1, UI_FONT_SMALL_HEIGHT + 1))
                 printU8GRow(1, UI_FONT_SMALL_HEIGHT, head);
+             #if LANGUAGE_RU_ACTIVE // Switch font
+                            if (Com::selectedLanguage != LANGUAGE_RU_ID) {
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                                } else {
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT_RU);
+                                }
+                                #else
             u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                            #endif
             u8g_SetColorIndex(&u8g, 1);
             if(menuLevel == 0) {
+                #if LANGUAGE_RU_ACTIVE //Switch font
+                         if (Com::selectedLanguage != LANGUAGE_RU_ID) {
                 u8g_SetFont(&u8g, UI_FONT_SMALL);
+                             } else {
+                             u8g_SetFont(&u8g, UI_FONT_SMALL_RU);
+                             }
+                            #else
+                            u8g_SetFont(&u8g, UI_FONT_SMALL);
+                            #endif
                 for(y = 0; y < UI_ROWS; y++) {
                     int h0 = UI_FONT_HEIGHT + y * (UI_FONT_SMALL_HEIGHT + 1);
                     if(u8g_IsBBXIntersection(&u8g, 0, h0, 1, UI_FONT_SMALL_HEIGHT + 1))
                         printU8GRow(14, h0 + UI_FONT_SMALL_HEIGHT + 1, &cache[y][off[y]]);
                 }
+                 #if LANGUAGE_RU_ACTIVE // Switch font
+                            if (Com::selectedLanguage != LANGUAGE_RU_ID) {
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                                } else {
+                                u8g_SetFont(&u8g, UI_FONT_DEFAULT_RU);
+                }
+                                #else
                 u8g_SetFont(&u8g, UI_FONT_DEFAULT);
+                            #endif
                 printRow(4, &cache[5][off[5]], NULL, UI_COLS);
             } else {
 #endif
@@ -2420,7 +2561,7 @@ void UIDisplay::popMenu(bool refresh) {
 
 void UIDisplay::showMessage(int id) {
     uid.menuLevel = 0;
-	Printer::setUIErrorMessage(true);
+    Printer::setUIErrorMessage(true);
     switch(id) {
     case 1:
         uid.pushMenu(&ui_msg_leveling_error, true);
@@ -2460,14 +2601,25 @@ int UIDisplay::okAction(bool allowMoves) {
     unsigned int action;
 #if SDSUPPORT
     if(mtype == UI_MENU_TYPE_FILE_SELECTOR) {
+        uint8_t filePos = menuPos[menuLevel] - 1;
+        char filename[LONG_FILENAME_LENGTH + 1];
         if(menuPos[menuLevel] == 0) { // Selected back instead of file
-            return executeAction(UI_ACTION_BACK, allowMoves);
+			if(folderLevel > 0) {
+				filename[0] = filename[1] = '.';
+				filename[2] = 0;
+				goDir(filename);
+				menuTop[menuLevel] = 0;
+				menuPos[menuLevel] = 1;
+			    refreshPage();
+		        oldMenuLevel = -1;
+	            return 0;
+			} else {
+				return executeAction(UI_ACTION_BACK, allowMoves);
+			}
         }
 
         if(!sd.sdactive)
             return 0;
-        uint8_t filePos = menuPos[menuLevel] - 1;
-        char filename[LONG_FILENAME_LENGTH + 1];
 
         getSDFilenameAt(filePos, filename);
         if(isDirname(filename)) { // Directory change selected
@@ -2596,6 +2748,7 @@ int UIDisplay::okAction(bool allowMoves) {
 #endif
 #if DISTORTION_CORRECTION
             case UI_ACTION_MEASURE_DISTORTION2:
+				uid.popMenu(false);
                 uid.pushMenu(&ui_msg_calibrating_bed, true);
                 Printer::measureDistortion();
                 uid.popMenu(true);
@@ -3300,7 +3453,7 @@ int UIDisplay::executeAction(unsigned int action, bool allowMoves) {
             break;
         case UI_ACTION_SET_ORIGIN:
             if(!allowMoves) return UI_ACTION_SET_ORIGIN;
-            Printer::setOrigin(0, 0, 0);
+            Printer::setOrigin(-Printer::currentPosition[X_AXIS], -Printer::currentPosition[Y_AXIS], -Printer::currentPosition[Z_AXIS]);
             break;
         case UI_ACTION_TOGGLE_JAMCONTROL:
             Printer::setJamcontrolDisabled(!Printer::isJamcontrolDisabled());
@@ -3338,7 +3491,8 @@ int UIDisplay::executeAction(unsigned int action, bool allowMoves) {
         break;
 #if CASE_LIGHTS_PIN >= 0
         case UI_ACTION_LIGHTS_ONOFF:
-            TOGGLE(CASE_LIGHTS_PIN);
+			Printer::lightOn = !Printer::lightOn;
+            WRITE(CASE_LIGHTS_PIN, Printer::lightOn);
 #ifdef CASE_LIGHTS2_PIN
             TOGGLE(CASE_LIGHTS2_PIN);
 #endif
@@ -3467,6 +3621,12 @@ int UIDisplay::executeAction(unsigned int action, bool allowMoves) {
             pushMenu(&ui_menu_eeprom_loaded, false);
             BEEP_LONG;
             break;
+		case UI_ACTION_RESET_EEPROM:
+		    EEPROM::restoreEEPROMSettingsFromConfiguration();
+		    EEPROM::storeDataIntoEEPROM(false);
+            pushMenu(&ui_menu_eeprom_reset, false);
+            BEEP_LONG;
+			break;
 #endif
 #if SDSUPPORT
         case UI_ACTION_SD_DELETE:
@@ -3640,15 +3800,11 @@ int UIDisplay::executeAction(unsigned int action, bool allowMoves) {
             Printer::pushWizardVar(Printer::coordinateOffset[X_AXIS]);
             Printer::pushWizardVar(Printer::coordinateOffset[Y_AXIS]);
             Printer::pushWizardVar(Printer::coordinateOffset[Z_AXIS]);
-			if(!Printer::isMenuMode(MENU_MODE_SD_PRINTING + MENU_MODE_PAUSED))
-				Printer::MemoryPosition();
+            if(!Printer::isMenuMode(MENU_MODE_SD_PRINTING + MENU_MODE_PAUSED))
+                Printer::MemoryPosition();
             Extruder::current->retractDistance(FILAMENTCHANGE_SHORTRETRACT);
-            float newZ = FILAMENTCHANGE_Z_ADD + Printer::currentPosition[Z_AXIS];
             Printer::currentPositionSteps[E_AXIS] = 0;
-            if(Printer::isHomedAll()) { // for safety move only when homed!
-                Printer::moveToReal(Printer::currentPosition[X_AXIS], Printer::currentPosition[Y_AXIS], newZ, 0, Printer::homingFeedrate[Z_AXIS]);
-                Printer::moveToReal(FILAMENTCHANGE_X_POS, FILAMENTCHANGE_Y_POS, newZ, 0, Printer::homingFeedrate[X_AXIS]);
-            }
+            Printer::moveToParkPosition();
             Extruder::current->retractDistance(FILAMENTCHANGE_LONGRETRACT);
             Extruder::current->disableCurrentExtruderMotor();
         }
@@ -3664,12 +3820,8 @@ int UIDisplay::executeAction(unsigned int action, bool allowMoves) {
             Printer::pushWizardVar(Printer::coordinateOffset[Z_AXIS]);
             Printer::MemoryPosition();
             Extruder::current->retractDistance(FILAMENTCHANGE_SHORTRETRACT);
-            float newZ = FILAMENTCHANGE_Z_ADD + Printer::currentPosition[Z_AXIS];
             Printer::currentPositionSteps[E_AXIS] = 0;
-            if(Printer::isHomedAll()) { // for safety move only when homed!
-                Printer::moveToReal(Printer::currentPosition[X_AXIS], Printer::currentPosition[Y_AXIS], newZ, 0, Printer::homingFeedrate[Z_AXIS]);
-                Printer::moveToReal(FILAMENTCHANGE_X_POS, FILAMENTCHANGE_Y_POS, newZ, 0, Printer::homingFeedrate[X_AXIS]);
-            }
+            Printer::moveToParkPosition();
             //Extruder::current->retractDistance(FILAMENTCHANGE_LONGRETRACT);
             Extruder::pauseExtruders(false);
             Commands::waitUntilEndOfAllMoves();
@@ -3873,6 +4025,7 @@ int UIDisplay::executeAction(unsigned int action, bool allowMoves) {
         case UI_ACTION_LANGUAGE_PL:
         case UI_ACTION_LANGUAGE_TR:
         case UI_ACTION_LANGUAGE_FI:
+        case UI_ACTION_LANGUAGE_RU:
             Com::selectLanguage(action - UI_ACTION_LANGUAGE_EN);
 #if EEPROM_MODE != 0
             EEPROM::storeDataIntoEEPROM(0); // remember for next start
@@ -3911,11 +4064,11 @@ void UIDisplay::mediumAction() {
 #endif
 }
 
-// Gets calls from main tread only
+// Gets calls from main thread only
 void UIDisplay::slowAction(bool allowMoves) {
     millis_t time = HAL::timeInMilliseconds();
     uint8_t refresh = 0;
-#if UI_HAS_KEYS == 1
+#if UI_HAS_KEYS == 1 || defined(HAS_USER_KEYS)
     // delayed action open?
     if(allowMoves && delayedAction != 0) {
         executeAction(delayedAction, true);

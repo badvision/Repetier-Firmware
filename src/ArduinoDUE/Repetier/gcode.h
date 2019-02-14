@@ -25,13 +25,20 @@ enum FirmwareState {NotBusy=0,Processing,Paused,WaitHeater,DoorOpen};
 
 class SDCard;
 class Commands;
-
-
-
-
+class GCode;
+#define SERIAL_IN_BUFFER 128u
 
 class SerialGCodeSource: public GCodeSource {
     Stream *stream;
+#if EMERGENCY_PARSER
+	uint8_t buffer[SERIAL_IN_BUFFER];
+	uint8_t commandReceiving[MAX_CMD_SIZE]; ///< Current received command.
+	uint8_t commandsReceivingWritePosition; ///< Writing position in gcode_transbuffer.
+	uint8_t sendAsBinary;                   ///< Flags the command as binary input.
+	uint8_t commentDetected;                ///< Flags true if we are reading the comment part of a command.
+	uint8_t binaryCommandSize;              ///< Expected size of the incoming binary command.
+	ufast8_t bufWritePos, bufReadPos, bufLength;
+#endif
 public:    
     SerialGCodeSource(Stream *p);
     virtual bool isOpen();
@@ -41,6 +48,8 @@ public:
     virtual int readByte();
     virtual void writeByte(uint8_t byte);
     virtual void close();
+    virtual void prefetchContent();
+    void testEmergency(GCode& gcode);
 };
 //#pragma message "Sd support: " XSTR(SDSUPPORT)  
 #if SDSUPPORT
@@ -247,7 +256,7 @@ public:
         return ((params2 & 32768)!=0);
     }
     void printCommand();
-    bool parseBinary(uint8_t *buffer,bool fromSerial);
+    bool parseBinary(uint8_t* buffer, fast8_t length, bool fromSerial);
     bool parseAscii(char *line,bool fromSerial);
     void popCurrentCommand();
     void echoCommand();
@@ -317,12 +326,12 @@ public:
 
 
 #if JSON_OUTPUT
-#include "SdFat.h"
+#include "src/SdFat/SdFat.h"
 // Struct to hold Gcode file information 32 bytes
 #define GENBY_SIZE 16
 class GCodeFileInfo {
 public:
-    void init(SdBaseFile &file);
+    void init(SdFile &file);
 
     unsigned long fileSize;
     float objectHeight;

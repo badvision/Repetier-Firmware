@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of Repetier-Firmware.
 
     Repetier-Firmware is free software: you can redistribute it and/or modify
@@ -103,6 +103,10 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     heatedBedController.pidIGain = HEATED_BED_PID_IGAIN;
     heatedBedController.pidDGain = HEATED_BED_PID_DGAIN;
     heatedBedController.pidMax = HEATED_BED_PID_MAX;
+#if ENABLED(TEMP_GAIN)
+    heatedBedController.tempGain = 1.0;
+    heatedBedController.tempBias = 0.0;
+#endif
 #endif
     Printer::xLength = X_MAX_LENGTH;
     Printer::yLength = Y_MAX_LENGTH;
@@ -110,6 +114,10 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     Printer::xMin = X_MIN_POS;
     Printer::yMin = Y_MIN_POS;
     Printer::zMin = Z_MIN_POS;
+#if DUAL_X_AXIS_MODE > 0 && LAZY_DUAL_X_AXIS == 0
+    Printer::x1Min = Printer::xMin;
+    Printer::x1Length = Printer::xLength;
+#endif
 #if NONLINEAR_SYSTEM
 #ifdef ROD_RADIUS
 	Printer::radius0 = ROD_RADIUS;
@@ -137,6 +145,10 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->tempControl.pidIGain = EXT0_PID_I;
     e->tempControl.pidDGain = EXT0_PID_D;
     e->tempControl.pidMax = EXT0_PID_MAX;
+#if ENABLED(TEMP_GAIN)
+    e->tempControl.tempGain = 1.0;
+    e->tempControl.tempBias = 0.0;
+#endif
     e->yOffset = EXT0_Y_OFFSET;
     e->xOffset = EXT0_X_OFFSET;
     e->watchPeriod = EXT0_WATCHPERIOD;
@@ -166,6 +178,10 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->tempControl.pidIGain = EXT1_PID_I;
     e->tempControl.pidDGain = EXT1_PID_D;
     e->tempControl.pidMax = EXT1_PID_MAX;
+#if ENABLED(TEMP_GAIN)
+    e->tempControl.tempGain = 1.0;
+    e->tempControl.tempBias = 0.0;
+#endif
     e->yOffset = EXT1_Y_OFFSET;
     e->xOffset = EXT1_X_OFFSET;
     e->watchPeriod = EXT1_WATCHPERIOD;
@@ -195,6 +211,10 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->tempControl.pidIGain = EXT2_PID_I;
     e->tempControl.pidDGain = EXT2_PID_D;
     e->tempControl.pidMax = EXT2_PID_MAX;
+#if ENABLED(TEMP_GAIN)
+    e->tempControl.tempGain = 1.0;
+    e->tempControl.tempBias = 0.0;
+#endif
     e->yOffset = EXT2_Y_OFFSET;
     e->xOffset = EXT2_X_OFFSET;
     e->watchPeriod = EXT2_WATCHPERIOD;
@@ -224,6 +244,10 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->tempControl.pidIGain = EXT3_PID_I;
     e->tempControl.pidDGain = EXT3_PID_D;
     e->tempControl.pidMax = EXT3_PID_MAX;
+#if ENABLED(TEMP_GAIN)
+    e->tempControl.tempGain = 1.0;
+    e->tempControl.tempBias = 0.0;
+#endif
     e->yOffset = EXT3_Y_OFFSET;
     e->xOffset = EXT3_X_OFFSET;
     e->watchPeriod = EXT3_WATCHPERIOD;
@@ -253,6 +277,10 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->tempControl.pidIGain = EXT4_PID_I;
     e->tempControl.pidDGain = EXT4_PID_D;
     e->tempControl.pidMax = EXT4_PID_MAX;
+#if ENABLED(TEMP_GAIN)
+    e->tempControl.tempGain = 1.0;
+    e->tempControl.tempBias = 0.0;
+#endif
     e->yOffset = EXT4_Y_OFFSET;
     e->xOffset = EXT4_X_OFFSET;
     e->watchPeriod = EXT4_WATCHPERIOD;
@@ -282,6 +310,10 @@ void EEPROM::restoreEEPROMSettingsFromConfiguration()
     e->tempControl.pidIGain = EXT5_PID_I;
     e->tempControl.pidDGain = EXT5_PID_D;
     e->tempControl.pidMax = EXT5_PID_MAX;
+#if ENABLED(TEMP_GAIN)
+    e->tempControl.tempGain = 1.0;
+    e->tempControl.tempBias = 0.0;
+#endif
     e->yOffset = EXT5_Y_OFFSET;
     e->xOffset = EXT5_X_OFFSET;
     e->watchPeriod = EXT5_WATCHPERIOD;
@@ -365,6 +397,10 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     HAL::eprSetFloat(EPR_BED_PID_IGAIN,heatedBedController.pidIGain);
     HAL::eprSetFloat(EPR_BED_PID_DGAIN,heatedBedController.pidDGain);
     HAL::eprSetByte(EPR_BED_PID_MAX,heatedBedController.pidMax);
+#if ENABLED(TEMP_GAIN)
+    HAL::eprSetFloat(EPR_EXTRUDER_GAIN, heatedBedController.tempGain);
+    HAL::eprSetFloat(EPR_EXTRUDER_BIAS, heatedBedController.tempBias);
+#endif
 #else
     HAL::eprSetByte(EPR_BED_DRIVE_MAX,HEATED_BED_PID_INTEGRAL_DRIVE_MAX);
     HAL::eprSetByte(EPR_BED_DRIVE_MIN,HEATED_BED_PID_INTEGRAL_DRIVE_MIN);
@@ -372,6 +408,10 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
     HAL::eprSetFloat(EPR_BED_PID_IGAIN,HEATED_BED_PID_IGAIN);
     HAL::eprSetFloat(EPR_BED_PID_DGAIN,HEATED_BED_PID_DGAIN);
     HAL::eprSetByte(EPR_BED_PID_MAX,HEATED_BED_PID_MAX);
+#if ENABLED(TEMP_GAIN)
+    HAL::eprSetFloat(EPR_HEATED_BED_GAIN, 1.0);
+    HAL::eprSetFloat(EPR_HEATED_BED_BIAS, 0.0);
+#endif
 #endif
     //SHOT("storeDataIntoEEPROM"); SHOWM(Printer::xMin);SHOWM(Printer::yMin);SHOWM(Printer::zMin);
     HAL::eprSetFloat(EPR_X_HOME_OFFSET,Printer::xMin);
@@ -407,7 +447,7 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
         HAL::pingWatchdog();
 #endif // FEATURE_WATCHDOG
 
-        int o=i*EEPROM_EXTRUDER_LENGTH+EEPROM_EXTRUDER_OFFSET;
+        int o = i * EEPROM_EXTRUDER_LENGTH + EEPROM_EXTRUDER_OFFSET;
         Extruder *e = &extruder[i];
         HAL::eprSetFloat(o+EPR_EXTRUDER_STEPS_PER_MM,e->stepsPerMM);
         HAL::eprSetFloat(o+EPR_EXTRUDER_MAX_FEEDRATE,e->maxFeedrate);
@@ -443,6 +483,10 @@ void EEPROM::storeDataIntoEEPROM(uint8_t corrupted)
 #else
         HAL::eprSetFloat(o+EPR_EXTRUDER_ADVANCE_K,0);
         HAL::eprSetFloat(o+EPR_EXTRUDER_ADVANCE_L,0);
+#endif
+#if ENABLED(TEMP_GAIN)
+		HAL::eprSetFloat(o+EPR_EXTRUDER_GAIN, e->tempControl.tempGain);
+		HAL::eprSetFloat(o+EPR_EXTRUDER_BIAS, e->tempControl.tempBias);
 #endif
     }
 #if MIXING_EXTRUDER
@@ -516,6 +560,9 @@ void EEPROM::initalizeUncached()
     HAL::eprSetFloat(EPR_BENDING_CORRECTION_B,BENDING_CORRECTION_B);
     HAL::eprSetFloat(EPR_BENDING_CORRECTION_C,BENDING_CORRECTION_C);
     HAL::eprSetFloat(EPR_ACCELERATION_FACTOR_TOP,ACCELERATION_FACTOR_TOP);
+    HAL::eprSetFloat(EPR_PARK_X,PARK_POSITION_X);
+    HAL::eprSetFloat(EPR_PARK_Y,PARK_POSITION_Y);
+    HAL::eprSetFloat(EPR_PARK_Z,PARK_POSITION_Z_RAISE);
 
 }
 
@@ -563,6 +610,14 @@ void EEPROM::readDataFromEEPROM(bool includeExtruder)
     heatedBedController.pidIGain = HAL::eprGetFloat(EPR_BED_PID_IGAIN);
     heatedBedController.pidDGain = HAL::eprGetFloat(EPR_BED_PID_DGAIN);
     heatedBedController.pidMax = HAL::eprGetByte(EPR_BED_PID_MAX);
+#if ENABLED(TEMP_GAIN)
+    if(version < 20) {
+		HAL::eprSetFloat(EPR_HEATED_BED_GAIN, 1.0);
+		HAL::eprSetFloat(EPR_HEATED_BED_BIAS, 0.0);
+	}
+    heatedBedController.tempGain = HAL::eprGetFloat(EPR_HEATED_BED_GAIN);
+    heatedBedController.tempBias = HAL::eprGetFloat(EPR_HEATED_BED_BIAS);
+#endif
 #endif
     Printer::xMin = HAL::eprGetFloat(EPR_X_HOME_OFFSET);
     Printer::yMin = HAL::eprGetFloat(EPR_Y_HOME_OFFSET);
@@ -570,6 +625,10 @@ void EEPROM::readDataFromEEPROM(bool includeExtruder)
     Printer::xLength = HAL::eprGetFloat(EPR_X_LENGTH);
     Printer::yLength = HAL::eprGetFloat(EPR_Y_LENGTH);
     Printer::zLength = HAL::eprGetFloat(EPR_Z_LENGTH);
+#if DUAL_X_AXIS_MODE > 0 && LAZY_DUAL_X_AXIS == 0
+    Printer::x1Min = Printer::xMin;
+    Printer::x1Length = Printer::xLength;
+#endif
 #if NONLINEAR_SYSTEM
     Printer::radius0 = HAL::eprGetFloat(EPR_DELTA_HORIZONTAL_RADIUS);
 #endif
@@ -640,6 +699,14 @@ void EEPROM::readDataFromEEPROM(bool includeExtruder)
             e->advanceK = HAL::eprGetFloat(o+EPR_EXTRUDER_ADVANCE_K);
 #endif
             e->advanceL = HAL::eprGetFloat(o+EPR_EXTRUDER_ADVANCE_L);
+#endif
+#if ENABLED(TEMP_GAIN)
+			if(version < 20) {
+			     HAL::eprSetFloat(o+EPR_EXTRUDER_GAIN, 1.0);
+			     HAL::eprSetFloat(o+EPR_EXTRUDER_BIAS, 0.0);
+			}
+			e->tempControl.tempGain = HAL::eprGetFloat(o+EPR_EXTRUDER_GAIN);
+			e->tempControl.tempBias =  HAL::eprGetFloat(o+EPR_EXTRUDER_BIAS);
 #endif
             if(version > 1)
                 e->coolerSpeed = HAL::eprGetByte(o+EPR_EXTRUDER_COOLER_SPEED);
@@ -775,6 +842,11 @@ void EEPROM::readDataFromEEPROM(bool includeExtruder)
             Printer::axisX2StepsPerMM = X2AXIS_STEPS_PER_MM;
         }
 #endif        
+		if(version < 19) {
+		    HAL::eprSetFloat(EPR_PARK_X,PARK_POSITION_X);
+		    HAL::eprSetFloat(EPR_PARK_Y,PARK_POSITION_Y);
+		    HAL::eprSetFloat(EPR_PARK_Z,PARK_POSITION_Z_RAISE);
+		}
         /*        if (version<8) {
         #if DRIVE_SYSTEM==DELTA
                   // Prior to version 8, the Cartesian max was stored in the zmax
@@ -790,7 +862,7 @@ void EEPROM::readDataFromEEPROM(bool includeExtruder)
                   Printer::zLength += delta[Z_AXIS];
         #endif
                 }*/
-
+		HAL::eprSetByte(EPR_RESCUE_MODE, 0);
         storeDataIntoEEPROM(false); // Store new fields for changed version
     }
     Printer::zBedOffset = HAL::eprGetFloat(EPR_Z_PROBE_Z_OFFSET);
@@ -916,6 +988,10 @@ writeFloat(EPR_X2AXIS_STEPS_PER_MM, Com::tEPRX2StepsPerMM, 4);
     writeFloat(EPR_X_LENGTH, Com::tEPRXMaxLength);
     writeFloat(EPR_Y_LENGTH, Com::tEPRYMaxLength);
     writeFloat(EPR_Z_LENGTH, Com::tEPRZMaxLength);
+	writeFloat(EPR_PARK_X, PSTR("Park position X [mm]"));
+	writeFloat(EPR_PARK_Y, PSTR("Park position Y [mm]"));
+	writeFloat(EPR_PARK_Z, PSTR("Park position Z raise [mm]"));
+
 #if ENABLE_BACKLASH_COMPENSATION
     writeFloat(EPR_BACKLASH_X, Com::tEPRXBacklash);
     writeFloat(EPR_BACKLASH_Y, Com::tEPRYBacklash);
@@ -1003,6 +1079,10 @@ writeFloat(EPR_X2AXIS_STEPS_PER_MM, Com::tEPRX2StepsPerMM, 4);
     writeFloat(EPR_BED_PID_IGAIN, Com::tEPRBedIGain);
     writeFloat(EPR_BED_PID_DGAIN, Com::tEPRBedDGain);
     writeByte(EPR_BED_PID_MAX, Com::tEPRBedPISMaxValue);
+#if ENABLED(TEMP_GAIN)
+    writeFloat(EPR_HEATED_BED_GAIN, PSTR("Bed Temp. Gain"),4);
+    writeFloat(EPR_HEATED_BED_BIAS, PSTR("Bed Temp. Bias [degC]"),4);
+#endif
 #endif
 #if FEATURE_RETRACTION
     writeByte(EPR_AUTORETRACT_ENABLED,Com::tEPRAutoretractEnabled);
@@ -1033,6 +1113,10 @@ writeFloat(EPR_X2AXIS_STEPS_PER_MM, Com::tEPRX2StepsPerMM, 4);
         writeFloat(o + EPR_EXTRUDER_PID_PGAIN, Com::tEPRPGain,4);
         writeFloat(o + EPR_EXTRUDER_PID_IGAIN, Com::tEPRIGain,4);
         writeFloat(o + EPR_EXTRUDER_PID_DGAIN, Com::tEPRDGain,4);
+#if ENABLED(TEMP_GAIN)
+        writeFloat(o + EPR_EXTRUDER_GAIN, PSTR("Temp. Gain"),4);
+        writeFloat(o + EPR_EXTRUDER_BIAS, PSTR("Temp. Bias [degC]"),4);
+#endif
         writeByte(o + EPR_EXTRUDER_PID_MAX, Com::tEPRPIDMaxValue);
         writeLong(o + EPR_EXTRUDER_X_OFFSET, Com::tEPRXOffset);
         writeLong(o + EPR_EXTRUDER_Y_OFFSET, Com::tEPRYOffset);
