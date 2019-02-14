@@ -107,7 +107,7 @@ is a full cartesian system where x, y and z moves are handled by separate motors
 Cases 1, 2, 8 and 9 cover all needed xy and xz H gantry systems. If you get results mirrored etc. you can swap motor connections for x and y.
 If a motor turns in the wrong direction change INVERT_X_DIR or INVERT_Y_DIR.
 */
-#define DRIVE_SYSTEM 3
+#define DRIVE_SYSTEM 1
 /*
   Normal core xy implementation needs 2 virtual steps for a motor step to guarantee
   that every tiny move gets maximum one step regardless of direction. This can cost
@@ -962,6 +962,16 @@ on this endstop.
 #define Y_MIN_POS 0
 #define Z_MIN_POS 0
 
+// Park position used when pausing from firmware side
+#if DRIVE_SYSTEM == DELTA
+#define PARK_POSITION_X (0)
+#define PARK_POSITION_Y (70)
+#else 
+#define PARK_POSITION_X (X_MIN_POS)
+#define PARK_POSITION_Y (Y_MIN_POS + Y_MAX_LENGTH)
+#endif
+#define PARK_POSITION_Z_RAISE 10
+
 // ##########################################################################################
 // ##                           Movement settings                                          ##
 // ##########################################################################################
@@ -1562,6 +1572,7 @@ to recalibrate z.
 #define Z_PROBE_XY_SPEED 150
 #define Z_PROBE_SWITCHING_DISTANCE 1.5 // Distance to safely switch off probe after it was activated
 #define Z_PROBE_REPETITIONS 5 // Repetitions for probing at one point. 
+#define Z_PROBE_USE_MEDIAN 0 // 1 = use middle value, 0 = use average of measurements.
 /** The height is the difference between activated probe position and nozzle height. */
 #define Z_PROBE_HEIGHT 39.91
 /** These scripts are run before resp. after the z-probe is done. Add here code to activate/deactivate probe if needed. */
@@ -1707,6 +1718,7 @@ Always hard to say since the other angle is 89° in this case!
 // Uncomment to enable or change card detection pin. With card detection the card is mounted on insertion.
 #define SDCARDDETECT -1
 // Change to true if you get a inserted message on removal.
+#undef SDCARDDETECTINVERTED
 #define SDCARDDETECTINVERTED false
 #endif
 /** Show extended directory including file length. Don't use this with Pronterface! */

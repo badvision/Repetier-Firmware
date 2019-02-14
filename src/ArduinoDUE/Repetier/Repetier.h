@@ -24,8 +24,8 @@
 
 #include <math.h>
 #include <stdint.h>
-//#define REPETIER_VERSION "0.92.10"
-#define REPETIER_VERSION "1.0.1"
+
+#define REPETIER_VERSION "1.0.3"
 
 // Use new communication model for multiple channels - only until stable, then old version gets deleted
 #define NEW_COMMUNICATION 1
@@ -211,7 +211,7 @@ usage or for searching for memory induced errors. Switch it off for production, 
 
 #include "Configuration.h"
 
-#if (LASER_PWM_MAX > 255 && SUPPORT_LASER) || (CNC_PWM_MAX > 255 && SUPPORT_CNC)
+#if (LASvfaER_PWM_MAX > 255 && SUPPORT_LASER) || (CNC_PWM_MAX > 255 && SUPPORT_CNC)
 typedef uint16_t secondspeed_t;
 #else
 typedef uint8_t secondspeed_t;
@@ -595,7 +595,13 @@ inline void memcopy4(void *dest,void *source) {
 #endif
 
 #include "HAL.h"
+#ifndef MAX_VFAT_ENTRIES
+#ifdef AVR_BOARD
 #define MAX_VFAT_ENTRIES (2)
+#else
+#define MAX_VFAT_ENTRIES (3)
+#endif
+#endif
 /** Total size of the buffer used to store the long filenames */
 #define LONG_FILENAME_LENGTH (13*MAX_VFAT_ENTRIES+1)
 #define SD_MAX_FOLDER_DEPTH 2
@@ -620,7 +626,7 @@ inline void memcopy4(void *dest,void *source) {
 #endif
 
 #if SDSUPPORT
-#include "SdFat.h"
+#include "src/SdFat/SdFat.h"
 #endif
 
 #include "gcode.h"
@@ -956,7 +962,7 @@ extern void microstepInit();
 #include "motion.h"
 extern long baudrate;
 
-#include "HAL.h"
+// #include "HAL.h"
 
 
 extern unsigned int counterPeriodical;
@@ -970,11 +976,11 @@ extern uint8_t fanKickstart;
 extern uint8_t fan2Kickstart;
 #endif
 
-#if SDSUPPORT
 extern char tempLongFilename[LONG_FILENAME_LENGTH+1];
 extern char fullName[LONG_FILENAME_LENGTH*SD_MAX_FOLDER_DEPTH+SD_MAX_FOLDER_DEPTH+1];
+#if SDSUPPORT
 #define SHORT_FILENAME_LENGTH 14
-#include "SdFat.h"
+#include "src/SdFat/SdFat.h"
 
 enum LsAction {LS_SerialPrint,LS_Count,LS_GetFilename};
 class SDCard
